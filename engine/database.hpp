@@ -18,10 +18,10 @@
  */
 
 #pragma once
-#include <base.hpp>
+#include <base/base.hpp>
 #include <stdexcept>
-#include "sqlite3.h"
 #include <string>
+#include "sqlite3.h"
 
 #include <string.h>
 

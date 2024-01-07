@@ -33,8 +33,52 @@
 
 #include <stdint.h>
 #include <limits.h>
+#include <string>
+
 
 namespace pb {
+
+	// NOT atomic!
+	// You should use non-const comparison and get_hash() functions!
+	// they can save hash for later use...
+	class HString : public std::string {
+		friend class std::hash<HString>;
+		private:
+		size_t hash = 0;
+		size_t regen_hash() const {
+			size_t seed = size();
+			for(size_t x : *this) {
+				x = ((x >> 16) ^ x) * 0x45d9f3b;
+				x = ((x >> 16) ^ x) * 0x45d9f3b;
+				x = (x >> 16) ^ x;
+				seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			}
+			if (!seed) seed = 1;
+			return seed;
+		}
+		public:
+		using std::string::string;
+		inline size_t get_hash() const {
+			if (!hash) return regen_hash();
+			return hash;
+		}
+		inline size_t get_hash() {
+			if (!hash) hash = regen_hash();
+			return hash;
+		}
+		void reset_hash() {
+			hash = 0;
+		}
+		bool operator==(HString& src) {
+			if (size() == src.size() && get_hash() == src.get_hash()) {
+				return static_cast<std::string&>(*this) == static_cast<std::string&>(src);
+			}
+			return false;
+		}
+		bool operator!=(HString& src) {
+			return !(*this==src);
+		}
+	};
 
 	class Default {
 		public:
@@ -49,5 +93,16 @@ namespace pb {
 		virtual ~Abstract() = 0;
 	};
 
+};
+
+// here is hash function 
+template<>
+struct std::hash<pb::HString> {
+	std::size_t operator()(pb::HString& s) const noexcept {
+		return s.get_hash();
+	}
+	std::size_t operator()(const pb::HString& s) const noexcept {
+		return s.get_hash();
+	}
 };
 
