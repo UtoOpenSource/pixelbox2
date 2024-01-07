@@ -4,3 +4,5 @@
 /bin
 /cmake
 /.cache
+/build
+/legacy

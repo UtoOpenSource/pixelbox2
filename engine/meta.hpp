@@ -36,7 +36,7 @@ namespace pb {
 	using MetapropMap = tsl::robin_map<MetaKey, MetaValue>;
 
 	// Chunk Associative array
-	using ChunkRobinMap = tsl::robin_map<ChunkPos, struct Chunk*>;
+	using ChunkRobinMap = tsl::robin_map<ChunkPos, class Chunk*>;
 
 /*
  * Every Object that relates to the game itself : Chunk, Entyty,
@@ -54,19 +54,6 @@ namespace pb {
 		public:
 		MetapropMap map;
 
-	};
-
-	/* TODO: implement later
-	class Entity : public Metadata {
-		class Entity* next; // next entity in chunk
-		UUID id;
-		int16_t x, y; // shound be normalized to chunk
-	};
-	*/
-
-	class Chunk : public Metadata {
-		ChunkPos pos;
-		struct Pixels data, diff; // readonly + written changes
 	};
 
 };
