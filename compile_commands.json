@@ -1,0 +1,56 @@
+[
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/doctest.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/doctest.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/base/doctest.cpp",
+  "output": "CMakeFiles/libBase.dir/base/doctest.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/random.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/random.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/base/random.cpp",
+  "output": "CMakeFiles/libBase.dir/base/random.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/cc  -I/home/utoecat/PIXELBOX_PROJECT   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/enet.c.o -c /home/utoecat/PIXELBOX_PROJECT/external/enet.c",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/external/enet.c",
+  "output": "CMakeFiles/libExternal.dir/external/enet.c.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/cc  -I/home/utoecat/PIXELBOX_PROJECT   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/raygui.c.o -c /home/utoecat/PIXELBOX_PROJECT/external/raygui.c",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/external/raygui.c",
+  "output": "CMakeFiles/libExternal.dir/external/raygui.c.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/cc  -I/home/utoecat/PIXELBOX_PROJECT   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/sqlite3.c.o -c /home/utoecat/PIXELBOX_PROJECT/external/sqlite3.c",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/external/sqlite3.c",
+  "output": "CMakeFiles/libExternal.dir/external/sqlite3.c.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/cmake/base -std=gnu++20   -Wall -Wextra -o CMakeFiles/libEngine.dir/engine/database.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/engine/database.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/engine/database.cpp",
+  "output": "CMakeFiles/libEngine.dir/engine/database.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/cmake/base -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGraphics.dir/game/noop.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/noop.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/game/noop.cpp",
+  "output": "CMakeFiles/libGraphics.dir/game/noop.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/cmake/base -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/noop.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/noop.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/game/noop.cpp",
+  "output": "CMakeFiles/libGame.dir/game/noop.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/cmake",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/cmake -I/home/utoecat/PIXELBOX_PROJECT/cmake/base -std=gnu++20   -Wall -Wextra -o CMakeFiles/pixelbox.dir/main.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/main.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/main.cpp",
+  "output": "CMakeFiles/pixelbox.dir/main.cpp.o"
+}
+]

@@ -70,8 +70,8 @@ namespace pb {
 		uint8_t v[16];
 		public:
 		inline uint8_t& operator[](size_t i) {return v[i];}
-		inline const uint8_t operator[](size_t i) const {return v[i];}
-		inline const size_t size() const {return 16;}
+		inline uint8_t operator[](size_t i) const {return v[i];}
+		inline size_t size() const {return 16;}
 		public:
 		void generate(); // generates new UUID
 		void zero(); // sets UUID to NULL
@@ -81,7 +81,7 @@ namespace pb {
 		UUID(const UUID& src) = default;
 		~UUID() = default;
 		inline bool operator==(const UUID& src) const {
-			for (int i = 0; i < size(); i++)
+			for (size_t i = 0; i < size(); i++)
 				if (v[i] != src[i]) return false;
 			return true;
 		}

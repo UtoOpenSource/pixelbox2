@@ -56,15 +56,17 @@ namespace pb {
 
 	};
 
-	struct Entity : public Metadata {
-		struct Entity* next; // next entity in chunk
+	/* TODO: implement later
+	class Entity : public Metadata {
+		class Entity* next; // next entity in chunk
 		UUID id;
 		int16_t x, y; // shound be normalized to chunk
 	};
+	*/
 
-	struct Chunk : public Metadata {
+	class Chunk : public Metadata {
 		ChunkPos pos;
-		struct Pixels  data, diff; // readonly + written changes
+		struct Pixels data, diff; // readonly + written changes
 	};
 
 };

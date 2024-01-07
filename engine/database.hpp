@@ -21,7 +21,7 @@
 #include <base/base.hpp>
 #include <stdexcept>
 #include <string>
-#include "sqlite3.h"
+#include <external/sqlite3.h>
 
 #include <string.h>
 
