@@ -47,7 +47,7 @@ namespace pb {
 		private:
 		size_t hash = 0;
 		constexpr size_t regen_hash() const {
-			size_t seed = size();
+			size_t seed = this->length();
 			for(size_t x : *this) {
 				x = ((x >> 16) ^ x) * 0x45d9f3b;
 				x = ((x >> 16) ^ x) * 0x45d9f3b;
