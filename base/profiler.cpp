@@ -88,7 +88,7 @@ struct DataImpl {
 	DataImpl(DataImpl&&) = default;
 	private:
 	double use() {
-		return tick_time = prof_clock();
+		return prof_clock();
 	}
 	/** get statictics for a given zone name,
 	  * or create new one */
@@ -392,5 +392,14 @@ StatsStorage2 get_summary(ThreadID id, size_t pos) {
 	return res; // return a copy
 }
 
+int get_current_position(ThreadID id) {
+	auto ruse = impl::prof_data.use(); // lock
+	auto& data = ruse.ref;
+
+	auto v = data.find(id); // we don't want to always call a constructor
+	if (v != data.end()) throw std::runtime_error("thread was already registered!");;
+}
+
 };
+
 };

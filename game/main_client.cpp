@@ -37,7 +37,7 @@ namespace pb {
 		for (int i = 1; i < 7; i++) {
 			const HString v(std::string("_") + std::to_string(deep) + "_" + std::to_string(i + rand()%32));
 			PROFILING_SCOPE(v, prof);
-			if (rand() % 3 == 2) std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+			if (rand() % 10 == 2) std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 		}
 	}
 
@@ -70,6 +70,7 @@ namespace pb {
 
 			{
 			PROFILING_SCOPE("Game Logic", prof);
+			//for (int i = 0; i < 10; i++)
 			profiler_loadtest(0, prof);
 			}
 
