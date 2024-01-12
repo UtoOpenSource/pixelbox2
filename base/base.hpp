@@ -21,6 +21,7 @@
 /*
  * Please use compiler with C++20 concepts and general C++20 support to compile pixelbox! 
  */
+#include <iterator>
 #if !((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L || PB_NO_STDVER_CHECK)
 #error C++17 support is required!
 #endif
@@ -47,7 +48,7 @@ namespace pb {
 		private:
 		size_t hash = 0;
 		constexpr size_t regen_hash() const {
-			size_t seed = this->length();
+			size_t seed = std::distance(begin(), end());
 			for(size_t x : *this) {
 				x = ((x >> 16) ^ x) * 0x45d9f3b;
 				x = ((x >> 16) ^ x) * 0x45d9f3b;
