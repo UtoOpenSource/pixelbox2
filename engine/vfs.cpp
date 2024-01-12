@@ -19,7 +19,6 @@
 
 
 #include "vfs.h"
-#include "raylib.h"
 #include <string.h>
 #include <limits.h>
 
