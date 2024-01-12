@@ -33,6 +33,7 @@
 #include <stack>
 #include <utility>
 #include <stdexcept>
+#include <set>
 
 #include <iostream>
 
@@ -41,6 +42,7 @@ namespace pb {
 namespace prof {
 
 using Thread = std::thread;
+using StatsStorage = std::map<const pb::HString*, prof_stats>; // REAL stats storage
 static constexpr int HISTORY_LEN = 128; // how many history entries to keep
 
 double prof_clock() {
@@ -90,11 +92,11 @@ struct DataImpl {
 	}
 	/** get statictics for a given zone name,
 	  * or create new one */
-	prof_stats* stat(const HString& name) {
+	prof_stats* stat(const HString* name) {
 		return &(data.emplace(name, prof_stats()).first)->second;
 	}
 	/** push zone call on proflier stack */
-	prof_item& push(const HString& name) {
+	prof_item& push(const HString* name) {
 		prof_stats* val = stat(name);
 		auto& v = stack.emplace(val, use());
 		if (stack.size() == 0) std::runtime_error("What the fuck");
@@ -119,7 +121,7 @@ struct DataImpl {
 		return ThreadData(*this);
 	}
 	/** API */
-	void begin(const HString& name);
+	void begin(const HString* name);
 	void end();
 	void step();
 	/** private extended */
@@ -134,6 +136,7 @@ namespace impl {
 	using StatsHistory = std::array<StatsStorage, HISTORY_LEN>;
 	using HistoryMap = std::map<ThreadID, StatsHistory>;
 	static Resource<HistoryMap> prof_history;
+	static Resource<std::set<HString>, SpinLock> string_cache;
 
 	DataImpl& get_thread_data() {
 		auto id = curr_id();
@@ -199,9 +202,11 @@ namespace impl {
  *
  * All this technique is minded by me, on paper, in one day. It
  * may work very ugly, but it works, and i don't need more :p
+ *
+ * NEW: String passed here MUST be a string in PROFILER STRING CACHE!
  */
 
-void DataImpl::begin(const HString& name) {
+void DataImpl::begin(const HString* name) {
 	double time = prof_clock();
 
 	// set owntime and sumtime for previous entry
@@ -309,7 +314,21 @@ ThreadData get_thread_data() {
 	return data.get_wrapper();
 }
 
-void ThreadData::begin(const HString& name) {return data.begin(name);}
+/** THIS WRAPPER IS REALLY IMPORTANT NOW! */
+void ThreadData::begin(const HString& name) {
+	const HString* _cached = nullptr;
+	{
+		auto ruse = impl::string_cache.use(); // lock
+		auto& cache = ruse.ref;
+		auto v = cache.find(name);
+		if (v == cache.end()) {
+			_cached = &(*(cache.insert(name).first));
+		} else {
+			_cached = &(*v);
+		}
+	}
+	return data.begin(_cached);
+}
 void ThreadData::end() {return data.end();}
 void ThreadData::step() {return data.step();}
 
@@ -354,18 +373,22 @@ size_t history_size() {
  * Returns no value if thread with this ID does not exist.
  * pos is in range of 0 to history_size()-1;
  */
-StatsStorage get_summary(ThreadID id, size_t pos) {
+StatsStorage2 get_summary(ThreadID id, size_t pos) {
 	if (pos >= HISTORY_LEN) // error (misuse)
 		std::runtime_error("History position is out of range!");
 	
-	auto ruse = impl::prof_history.use(); // lock
-	auto& history = ruse.ref;
+	StatsStorage res;
+	{
+		auto ruse = impl::prof_history.use(); // lock
+		auto& history = ruse.ref;
 
-	auto v = history.find(id);
-	if (v == history.end()) return StatsStorage(); // invalid ThreadID
+		auto v = history.find(id);
+		if (v == history.end()) return StatsStorage2(); // invalid ThreadID
 	
-	// oh
-	StatsStorage res = v->second[pos];
+		// oh
+		res = v->second[pos];
+	}
+
 	return res; // return a copy
 }
 

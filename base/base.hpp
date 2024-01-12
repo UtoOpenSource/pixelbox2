@@ -97,6 +97,7 @@ namespace pb {
 		}
 		bool operator==(HString& src) {
 			if (size() == src.size() && get_hash() == src.get_hash()) {
+				if (size() <= 8) return true; // let's try
 				return static_cast<std::string&>(*this) == static_cast<std::string&>(src);
 			}
 			return false;

@@ -34,19 +34,19 @@ namespace pb {
 
 namespace tool {
 
-using ZonePair = std::pair<HString, prof::prof_stats>;
+using ZonePair = std::pair<const HString*, prof::prof_stats>;
 
 struct compare_zones {
 	bool operator()(const ZonePair& a, const ZonePair& b) const {
 		float c = (a.second.owntime / (float)a.second.ncalls)*1000000;
 		float d = (b.second.owntime / (float)b.second.ncalls)*1000000;
-		float e = (std::hash<HString>{}(a.first)&0xFFFF)/(float)999999;
-		float f = (std::hash<HString>{}(b.first)&0xFFFF)/(float)999999;
+		float e = (std::hash<const HString*>{}(a.first)&0xFFFF)/(float)999999;
+		float f = (std::hash<const HString*>{}(b.first)&0xFFFF)/(float)999999;
 		return (c+e) > (d+f);
 	}
 };
 
-using ZoneSet = std::set<std::pair<HString, prof::prof_stats>, compare_zones>;
+using ZoneSet = std::set<std::pair<const HString*, prof::prof_stats>, compare_zones>;
 
 ImColor get_str_color(const HString& s) {
 	size_t hash = std::hash<HString>{}(s);
@@ -56,14 +56,14 @@ ImColor get_str_color(const HString& s) {
 
 static void add_calltable_row(const ZoneSet& zones) {
 	for (auto &z : zones) {
-		ImGui::PushID(std::hash<HString>{}(z.first));
+		ImGui::PushID(std::hash<const HString*>{}(z.first));
 
 		// Text and Tree nodes are less high than framed widgets, using AlignTextToFramePadding() we add vertical spacing to make the tree lines
 		// equal high.
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
 		ImGui::AlignTextToFramePadding();
-		ImGui::TextColored(get_str_color(z.first), "%s", z.first.c_str());
+		ImGui::TextColored(get_str_color(*z.first), "%s", z.first->c_str());
 		ImGui::TableSetColumnIndex(1);
 		ImGui::Text("%f", z.second.sumtime);
 		ImGui::TableSetColumnIndex(2);
@@ -91,9 +91,9 @@ static struct {
 	std::vector<prof::ThreadID> threrads;
 	// history
 	size_t history_pos = 0;
-	std::vector<prof::StatsStorage> data = std::vector<prof::StatsStorage>(prof::history_size());	 // full stats
+	std::vector<prof::StatsStorage2> data = std::vector<prof::StatsStorage2>(prof::history_size());	 // full stats
 	// most heavier zones (short stats)
-	std::set<std::pair<HString, prof::prof_stats>, compare_zones> zones;
+	std::set<std::pair<const HString*, prof::prof_stats>, compare_zones> zones;
 } curr;
 
 static void refresh_data(prof::ThreadID current_thread) {
@@ -134,7 +134,7 @@ static void call_plotter() {
 
 		for (auto item : curr.data[i]) {
 			float item_v = (item.second.owntime / max_v) * range;
-			draw_list->AddRectFilled(ImVec2(p.x, p.y), ImVec2(p.x + per_item, p.y + item_v), get_str_color(item.first));
+			draw_list->AddRectFilled(ImVec2(p.x, p.y), ImVec2(p.x + per_item, p.y + item_v), get_str_color(*item.first));
 			p.y += item_v;
 		}
 	}

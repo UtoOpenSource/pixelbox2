@@ -65,9 +65,11 @@ class ThreadData {
 	/**
 	 * Push new profiler zone call on the stack.
 	 * NEW REQUIREMENT : All nemes passed to name must be very unique.
-	 * Try to use
+	 * NEW ISSUE : Any unique passed string will be keeped in memory FOREVER!
+	 * : This is not a good idea to let unsafe enviroment use this function!
 	 */
 	void begin(const HString& name);
+
 	/** end of call to previously pushed zone. Return to previous zone */
 	void end();
 	/*
@@ -126,7 +128,7 @@ struct prof_stats {
 };
 
 /** this is how entry/zone is stored internally */
-using StatsStorage = std::map<pb::HString, prof_stats>;
+using StatsStorage2 = std::map<const pb::HString*, prof_stats>;
 using ThreadID = std::thread::id;
 
 /** return vector of all threads */
@@ -144,7 +146,7 @@ size_t history_size();
  * Returns no value if thread with this ID does not exist.
  * pos is in range of 0 to history_size()-1;
  */
-StatsStorage get_summary(ThreadID, size_t pos);
+StatsStorage2 get_summary(ThreadID, size_t pos);
 
 };
 }
