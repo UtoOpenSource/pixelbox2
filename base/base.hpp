@@ -47,7 +47,7 @@ namespace pb {
 		friend class std::hash<HString>;
 		private:
 		size_t hash = 0;
-		constexpr size_t regen_hash() const {
+		size_t regen_hash() const {
 			size_t seed = std::distance(begin(), end());
 			for(size_t x : *this) {
 				x = ((x >> 16) ^ x) * 0x45d9f3b;
