@@ -1,19 +1,20 @@
 # Pixelbox 2
 The new version of [pixelbox](https://github.com/UtoOpenSource/pixelbox).   Infinite sandbox gae
 **STILL IN PROTOTYPING STAGE!**   
+
 In this version **ALREADY** Done this things :
 - Rewritten on c++
 - GUI is separated from game logic (kinda)
 - Rewritten profiler
 - Use SDL instead of raylib, ImGUI instead of raygio
-
+     
 This new version WILL include features like :
 - Client-Server multiplayer
 - Rewritten particle physic calculations definition
 - Improved rendering
 - Multithreaded world generation
 - Multithreaded world update calculation
-
+     
 **In the far future** theese fratures are planned :
 - Entity susyem
 - Serve and clientr-side modifications (using luau)
