@@ -5,6 +5,6 @@ PointerAlignment: Right
 SortIncludes: 'true'
 TabWidth: '2'
 UseTab: Always
-ColumnLimit: 70
+ColumnLimit: 140
 
 ...

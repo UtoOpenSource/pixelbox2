@@ -1,6 +1,5 @@
 /*
  * This file is a part of Pixelbox - Infinite 2D sandbox game
- * Native Library API, used trough FFI
  * Copyright (C) 2023-2024 UtoECat
  *
  * This program is free software: you can redistribute it and/or

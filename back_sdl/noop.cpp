@@ -1,6 +1,6 @@
 /*
  * This file is a part of Pixelbox - Infinite 2D sandbox game
- * Spinlock.
+ * 
  * Copyright (C) 2023-2024 UtoECat
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,37 +16,5 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#pragma once
-#include <atomic>
-#include <mutex>
-#include <thread>
-
-namespace pb {
-
-	// use ONLY under very active load, and short lock period!
-	class SpinLock {
-		std::atomic_bool lo;
-		using Lock = std::unique_lock<SpinLock>;
-		public:
-		inline bool try_lock() {
-			bool unlocked = false;
-			// invalidate cache here
-			return lo.compare_exchange_weak(
-				unlocked, true, std::memory_order_acquire
-			);
-		}
-		inline void lock() {
-			while (!try_lock()) { // invalidates cache
-				// a bit more OK
-				while(lo.load(std::memory_order_acquire) != false) {}
-			}
-		}
-		inline void unlock() {
-			lo.store(false, std::memory_order_release);
-		}
-	};
-
-};
-
-
+ 
+#include <base/base.hpp>

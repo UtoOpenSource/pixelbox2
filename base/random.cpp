@@ -41,8 +41,13 @@
  * SOFTWARE.
  */
 
-#include "random.h"
 #include <math.h>
+#include <time.h>
+
+#include "random.h"
+#include "base/doctest.h"
+
+namespace pb {
 
 uint64_t RNG::next() {
 	int64_t old = state;
@@ -60,7 +65,7 @@ int32_t RNG::get(void) {
 double RNG::getn() {
 	int32_t v = get();
 	uint64_t v2 = (uint64_t)get();
-  double rd = ldexp(double(v | (uint64_t(v2) << 32)), -64);
+	double rd = ldexp(double(v | (uint64_t(v2) << 32)), -64);
 	return rd;
 }
 
@@ -71,7 +76,14 @@ void RNG::seed(uint64_t seed) {
 	next();
 }
 
-void randomizeNoise(uint64_t seed);
+RNG::RNG() { seed((uint64_t)time(NULL) * clock()); }
+
+RNG::RNG(uint64_t s) { seed(s); }
+
+TEST_CASE("RNG") {
+	RNG a;
+	CHECK(a.get() != a.get());
+}
 
 /*
  * END OF MIT-LICENSED CODE!!!!
@@ -112,7 +124,7 @@ void randomizeNoise(uint64_t seed);
  * architectures. This array is accessed a *lot* by the noise
  * functions. A vector-valued noise over 3D accesses it 96 times, and
  * a float-valued 4D noise 64 times. We want this to fit in the cache!
- */
+ *
 static unsigned char perm[] = {
 		151, 160, 137, 91,	90,	 15,	131, 13,	201, 95,	96,	 53,	194,
 		233, 7,		225, 140, 36,	 103, 30,	 69,	142, 8,		99,	 37,	240,
@@ -153,9 +165,9 @@ static unsigned char perm[] = {
 		249, 14,	239, 107, 49,	 192, 214, 31,	181, 199, 106, 157, 184,
 		84,	 204, 176, 115, 121, 50,	45,	 127, 4,	 150, 254, 138, 236,
 		205, 93,	222, 114, 67,	 29,	24,	 72,	243, 141, 128, 195, 78,
-		66,	 215, 61,	 156, 180};
+		66,	 215, 61,	 156, 180}; */
 
-void randomizeNoise(uint64_t seed) {	 // my extension
+void NoiseGen::randomize(uint64_t seed) {	 // my extension
 	bool done[256] = {0};
 
 	RNG random;
@@ -190,14 +202,14 @@ void randomizeNoise(uint64_t seed) {	 // my extension
  * float SLnoise = (noise3(x,y,z) + 1.0) * 0.5;
  */
 
-float grad1(int hash, float x) {
+float NoiseGen::grad1(int hash, float x) {
 	int h = hash & 15;
 	float grad = 1.0 + (h & 7);	 // Gradient value 1.0, 2.0, ..., 8.0
 	if (h & 8) grad = -grad;		 // and a random sign for the gradient
 	return (grad * x);	// Multiply the gradient with the distance
 }
 
-float grad2(int hash, float x, float y) {
+float NoiseGen::grad2(int hash, float x, float y) {
 	int h = hash & 7;					// Convert low 3 bits of hash code
 	float u = h < 4 ? x : y;	// into 8 simple gradient directions,
 	float v = h < 4 ? y : x;	// and compute the dot product with (x,y).
@@ -229,7 +241,7 @@ float grad4(int hash, float x, float y, float z, float t) {
 //---------------------------------------------------------------------
 /** 1D float Perlin noise, SL "noise()"
  */
-float noise1(float x) {
+float NoiseGen::noise1(float x) {
 	int ix0, ix1;
 	float fx0, fx1;
 	float s, n0, n1;
@@ -250,7 +262,7 @@ float noise1(float x) {
 //---------------------------------------------------------------------
 /** 1D float Perlin periodic noise, SL "pnoise()"
  */
-float pnoise1(float x, int px) {
+float NoiseGen::pnoise1(float x, int px) {
 	int ix0, ix1;
 	float fx0, fx1;
 	float s, n0, n1;
@@ -272,7 +284,7 @@ float pnoise1(float x, int px) {
 //---------------------------------------------------------------------
 /** 2D float Perlin noise.
  */
-float noise2(float x, float y) {
+float NoiseGen::noise2(float x, float y) {
 	int ix0, iy0, ix1, iy1;
 	float fx0, fy0, fx1, fy1;
 	float s, t, nx0, nx1, n0, n1;
@@ -305,7 +317,7 @@ float noise2(float x, float y) {
 //---------------------------------------------------------------------
 /** 2D float Perlin periodic noise.
  */
-float pnoise2(float x, float y, int px, int py) {
+float NoiseGen::pnoise2(float x, float y, int px, int py) {
 	int ix0, iy0, ix1, iy1;
 	float fx0, fy0, fx1, fy1;
 	float s, t, nx0, nx1, n0, n1;
@@ -336,3 +348,5 @@ float pnoise2(float x, float y, int px, int py) {
 
 	return 0.507f * (LERP(s, n0, n1));
 }
+
+};	// namespace pb
