@@ -116,6 +116,7 @@ static void refresh_data(prof::ThreadID current_thread) {
 	for (auto &p : curr.data[curr.history_pos]) {curr.zones.emplace(p);}
 }
 
+
 static void call_plotter() {
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 	const ImVec2 pos = ImGui::GetCursorScreenPos();

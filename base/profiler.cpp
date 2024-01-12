@@ -364,6 +364,7 @@ StatsStorage get_summary(ThreadID id, size_t pos) {
 	auto v = history.find(id);
 	if (v == history.end()) return StatsStorage(); // invalid ThreadID
 	
+	// oh
 	StatsStorage res = v->second[pos];
 	return res; // return a copy
 }

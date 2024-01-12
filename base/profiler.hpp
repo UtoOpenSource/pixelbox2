@@ -62,7 +62,11 @@ class ThreadData {
 	public:
 	/* API */
 
-	/** Push new profiler zone call on the stack */
+	/**
+	 * Push new profiler zone call on the stack.
+	 * NEW REQUIREMENT : All nemes passed to name must be very unique.
+	 * Try to use
+	 */
 	void begin(const HString& name);
 	/** end of call to previously pushed zone. Return to previous zone */
 	void end();
