@@ -3,12 +3,12 @@ The new version of [pixelbox](https://github.com/UtoOpenSource/pixelbox).   Infi
 **STILL IN PROTOTYPING STAGE!**   
 
 In this version **ALREADY** Done this things :
-- Rewritten on c++
+- Will be rewritten on c++
 - GUI is separated from game logic (kinda)
 - Rewritten profiler
-- Use SDL instead of raylib, ImGUI instead of raygio
+- Use SDL instead of raylib, ImGUI instead of raygui
      
-This new version WILL include features like :
+This new version **WILL** include features like :
 - Client-Server multiplayer
 - Rewritten particle physic calculations definition
 - Improved rendering
@@ -16,7 +16,7 @@ This new version WILL include features like :
 - Multithreaded world update calculation
      
 **In the far future** theese fratures are planned :
-- Entity susyem
+- Entity system
 - Serve and clientr-side modifications (using luau)
 - Server-side assets (textures, sounds, scripts, mods)
 - Particles sounds
