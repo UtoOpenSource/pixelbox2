@@ -38,15 +38,13 @@ using ZonePair = std::pair<const HString*, prof::prof_stats>;
 
 struct compare_zones {
 	bool operator()(const ZonePair& a, const ZonePair& b) const {
-		float c = (a.second.owntime / (float)a.second.ncalls)*1000000;
-		float d = (b.second.owntime / (float)b.second.ncalls)*1000000;
-		float e = (std::hash<const HString*>{}(a.first)&0xFFFF)/(float)999999;
-		float f = (std::hash<const HString*>{}(b.first)&0xFFFF)/(float)999999;
-		return (c+e) > (d+f);
+		float c = (a.second.owntime / (float)a.second.ncalls);
+		float d = (b.second.owntime / (float)b.second.ncalls);
+		return (c) > (d);
 	}
 };
 
-using ZoneSet = std::set<std::pair<const HString*, prof::prof_stats>, compare_zones>;
+using ZoneSet = std::multiset<std::pair<const HString*, prof::prof_stats>, compare_zones>;
 
 ImColor get_str_color(const HString& s) {
 	size_t hash = std::hash<HString>{}(s);
@@ -93,27 +91,43 @@ static struct {
 	size_t history_pos = 0;
 	std::vector<prof::StatsStorage2> data = std::vector<prof::StatsStorage2>(prof::history_size());	 // full stats
 	// most heavier zones (short stats)
-	std::set<std::pair<const HString*, prof::prof_stats>, compare_zones> zones;
+	ZoneSet zones;
 } curr;
 
-static void refresh_data(prof::ThreadID current_thread) {
+static void refresh_data(prof::ThreadID current_thread, prof::ThreadData& prof) {
 	if (curr.pause && !curr.need_refresh) return;
 	curr.need_refresh = false;
 
-	curr.threrads = prof::get_threads();
-	curr.zones.clear();
+	{
+		PROFILING_SCOPE("prof_get_threads", prof);
+		prof::get_threads(curr.threrads);
+	}
+		curr.zones.clear();
 
-	if (curr.short_stats) {	 // short
+	if (curr.short_stats || curr.force_short_stats) {	 // short
+		PROFILING_SCOPE("Prof_refresh_data", prof);
 		curr.data[curr.history_pos] = prof::get_summary(current_thread, curr.history_pos);
 	} else {
 		// full
-		for (size_t i = 0; i < prof::history_size(); i++) {
+		PROFILING_SCOPE("Prof_refresh_data_long", prof);
+		size_t i = curr.history_pos;
+		size_t dst = prof::get_current_position(current_thread);
+		size_t size = prof::history_size();
+		if (dst >= size) throw "wat";
+		while (i != dst) {
 			curr.data[i] = prof::get_summary(current_thread, i);
+			i++;
+			if (i >= size) i = 0;
 		}
+		curr.data[dst] = prof::get_summary(current_thread, i);
+		curr.history_pos = i;
 	}
 
+	{
+	PROFILING_SCOPE("Prof_sort_data", prof);
 	// sort
 	for (auto &p : curr.data[curr.history_pos]) {curr.zones.emplace(p);}
+	}
 }
 
 
@@ -169,8 +183,7 @@ void ProfilerWindow(bool *p_open) {
 
 	// get data
 	{
-		PROFILING_SCOPE("Prof_refresh_data", prof);
-	refresh_data(current_thread);
+	refresh_data(current_thread, prof);
 	}
 
 	// draw zones
@@ -215,8 +228,7 @@ void ProfilerWindow(bool *p_open) {
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Plotter")) {
-				if (curr.force_short_stats) curr.short_stats = true;
-				else curr.short_stats = false;
+				curr.short_stats = false;
 				ImGui::TextWrapped("Pause and see 'Call list' for associated colors");
 				call_plotter();
 

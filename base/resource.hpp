@@ -40,3 +40,25 @@ class Resource : public T{
 		return {std::unique_lock<Mutex>(m), static_cast<T&>(*this)};
 	}
 };
+
+/*
+For debug
+*/
+template <class T>
+struct ResUsage<T, void> {
+	T& ref;
+	public:
+	operator T& () {return ref;}
+};
+
+template<class T>
+class Resource<T, void> : public T{
+	private:
+	//T object;
+	public:
+	template<class... Args>
+	Resource(Args&&... args) : T(std::forward<Args>(args)...) {}
+	ResUsage<T, void> use() {
+		return {static_cast<T&>(*this)};
+	}
+};

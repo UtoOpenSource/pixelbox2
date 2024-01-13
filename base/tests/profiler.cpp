@@ -40,7 +40,9 @@ static void gen_unique(std::vector<int>& vec, int count) {
 }
 
 static void dump_profiler() {
-	for (auto& id : pb::prof::get_threads()) {
+	std::vector<pb::prof::ThreadID> vec;
+	pb::prof::get_threads(vec);
+	for (auto& id : vec) {
 			std::cout << "Thread ID : " << id << std::endl;
 			for (size_t i = 0; i < pb::prof::history_size(); i++) {
 				bool fired = false;

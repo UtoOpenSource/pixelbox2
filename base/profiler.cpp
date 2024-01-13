@@ -34,8 +34,7 @@
 #include <utility>
 #include <stdexcept>
 #include <set>
-
-#include <iostream>
+#include <unordered_map>
 
 namespace pb {
 
@@ -133,9 +132,9 @@ struct DataImpl {
  */
 namespace impl {
 	static Resource<std::map<ThreadID, DataImpl>, SpinLock> prof_data;
-	using StatsHistory = std::array<StatsStorage, HISTORY_LEN>;
-	using HistoryMap = std::map<ThreadID, StatsHistory>;
-	static Resource<HistoryMap> prof_history;
+	using StatsHistory = std::vector<StatsStorage>;
+	using HistoryMap = std::unordered_map<ThreadID, StatsHistory>;
+	static Resource<HistoryMap, void> prof_history;
 	static Resource<std::set<HString>, SpinLock> string_cache;
 
 	DataImpl& get_thread_data() {
@@ -177,7 +176,7 @@ namespace impl {
 	/** HISTORY MUST BE LOCKED! */
 	StatsHistory& get_history_data(ThreadID key, HistoryMap& history) {
 		auto it = history.find(key);
-		if (it == history.end()) return history.emplace(key, StatsHistory()).first->second;
+		if (it == history.end()) return history.emplace(key, StatsHistory(HISTORY_LEN)).first->second;
 		return it->second;
 	}
 
@@ -346,17 +345,16 @@ ScopeGuard<void()> ThreadData::make_zone(const HString& name) {
  */
 
 /** return vector of all threads */
-std::vector<ThreadID> get_threads() {
+void get_threads(std::vector<ThreadID>& vec) {
+	vec.clear();
+
 	auto ruse = impl::prof_history.use(); // lock
 	auto& history = ruse.ref;
-
-	std::vector<ThreadID> vec;
 	vec.reserve(history.size());
 
-	for (auto [id, _] : history) {
+	for (auto &[id, _] : history) {
 		vec.push_back(id);
 	}
-	return vec;
 }
 
 /** return length of history buffers (or (max position+1) in history/summary) */
@@ -392,12 +390,19 @@ StatsStorage2 get_summary(ThreadID id, size_t pos) {
 	return res; // return a copy
 }
 
-int get_current_position(ThreadID id) {
+size_t get_current_position(ThreadID id) {
+	size_t res = 0;
+	{
 	auto ruse = impl::prof_data.use(); // lock
 	auto& data = ruse.ref;
 
 	auto v = data.find(id); // we don't want to always call a constructor
-	if (v != data.end()) throw std::runtime_error("thread was already registered!");;
+	if (v == data.end()) return 0;
+	res = v->second.history_pos;
+	}
+	res--;
+	if (res >= history_size()) res = HISTORY_LEN-1;
+	return res;
 }
 
 };

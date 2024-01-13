@@ -132,21 +132,25 @@ using StatsStorage2 = std::map<const pb::HString*, prof_stats>;
 using ThreadID = std::thread::id;
 
 /** return vector of all threads */
-std::vector<ThreadID> get_threads();
+void get_threads(std::vector<ThreadID>&);
 
 /** return length of history buffers (or (max position+1) in history/summary) */
 size_t history_size();
 
 /**
  * Get statictics about all zones in one thread at specified position in time.
- * returns whole ass copy of everything.
- * Calling this every frame is absolutely costly, but
+ * Calling this every frame is somewhat costly, but
  * it allows us to do minimal syncronisation possible :)
  * 
  * Returns no value if thread with this ID does not exist.
  * pos is in range of 0 to history_size()-1;
  */
 StatsStorage2 get_summary(ThreadID, size_t pos);
+
+/**
+ * Returns "current" position in history for this thread.
+ */
+size_t get_current_position(ThreadID id);
 
 };
 }
