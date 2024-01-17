@@ -18,9 +18,7 @@
  */
 
 #include <base/base.hpp>
-#include <chrono>
 #include <exception>
-#include <iostream>
 #include <ratio>
 #include <thread>
 #include <vector>
@@ -29,6 +27,7 @@
 #include "back_sdl/graphics.hpp"
 
 #include "tools/tools.hpp"
+#include "game/world_view.hpp"
 
 namespace pb {
 
@@ -39,6 +38,13 @@ namespace pb {
 			PROFILING_SCOPE(v, prof);
 			if (rand() % 10 == 2) std::this_thread::sleep_for(std::chrono::nanoseconds(1));
 		}
+	}
+
+	static void register_tools(ToolManager& m) {
+		m.add_window("profiler", tools::CProfiler());
+		m.add_window("master", tools::CMaster());
+		m.add_window("debug_log", tools::CLogWindow());
+		m.add_window("gui_metrics", tools::CMetricsWindow());
 	}
 
 	// used in main() function only anyway...
@@ -52,7 +58,9 @@ namespace pb {
 			GL = backend::init();
 		}
 
-		static bool show_profiler = true;
+		ToolManager man;
+		register_tools(man);
+		man.open("master");
 
 		// loop
 		while(GL->tick()) {
@@ -63,15 +71,11 @@ namespace pb {
 
 			{
 			PROFILING_SCOPE("ImGui", prof);
-			ImGui::ShowDemoWindow();
-
-			tool::ProfilerWindow(&show_profiler);
+			man.process();
 			}
 
 			{
 			PROFILING_SCOPE("Game Logic", prof);
-			//for (int i = 0; i < 10; i++)
-			profiler_loadtest(0, prof);
 			}
 
 			{

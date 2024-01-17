@@ -57,6 +57,16 @@ namespace pb {
 		return true;
 	}
 
+	bool Statement::column_text(int index, std::string& v) {
+		const char* src = (const char*)sqlite3_column_text(ptr, index);
+		size_t slen = column_bytes(index);
+		v.clear();
+		if (!src || !slen) return false;
+		v.reserve(slen);
+		v.append(src, slen);
+		return true;
+	}
+
 	bool Statement::column_text(int index, char* dst, size_t max) {
 		const char* src = (const char*)sqlite3_column_text(ptr, index);
 		size_t slen = column_bytes(index);
@@ -67,6 +77,85 @@ namespace pb {
 		memcpy(dst, src, len);
 		dst[len] = '\0'; // end of line
 		return true;
+	};
+
+
+	namespace db {
+
+	void make_safe_string(std::string& s) {
+		std::replace(s.begin(), s.end(), '"', '_');
+		std::replace(s.begin(), s.end(), '\'', '_');
+		std::replace(s.begin(), s.end(), '(', '_');
+		std::replace(s.begin(), s.end(), ')', '_');
+	}
+
+	/** Create sql table if not exists */
+	void create_properties_table(Database &db, const char* _name) {
+		std::string s("CREATE TABLE IF NOT EXISTS ");
+		std::string name = _name;
+		make_safe_string(name);
+
+		s += "\""; s += name; s += "\" ";
+		s += "(key STRING PRIMARY KEY, value);";
+		db.exec(s.c_str());
+	}
+
+	/** default database settings */
+	void world_settings(Database &db) {
+		static const char* init_sql =
+		"PRAGMA cache_size = -16000;"
+		"PRAGMA journal_mode = MEMORY;"
+		"PRAGMA synchronous = 0;"	 // TODO : may be 1 ok?
+		"PRAGMA auto_vacuum = 0;"
+		"PRAGMA secure_delete = 0;"
+		"PRAGMA temp_store = MEMORY;"
+		"PRAGMA page_size = 32768;"
+		"PRAGMA integrity_check;";
+		// TODO: "CREATE TABLE IF NOT EXISTS PROPERTIES (key STRING PRIMARY KEY, "value);"
+		// FIXME: "CREATE TABLE IF NOT EXISTS WCHUNKS (id INTEGER PRIMARY KEY, value BLOB);"
+		db.exec(init_sql);
+	}
+
+	/** default database settings */
+	void config_settings(Database &db) {
+		static const char* init_sql =
+		"PRAGMA cache_size = -16000;"
+		"PRAGMA journal_mode = WAL;"
+		"PRAGMA synchronous = 0;"	 // TODO : may be 1 ok?
+		"PRAGMA auto_vacuum = 0;"
+		"PRAGMA secure_delete = 0;"
+		"PRAGMA integrity_check;";
+		db.exec(init_sql);
+	}
+
+	void set_property(Database &db, const char* _table, const char* name, const std::string& value) {
+		std::string table = _table;
+		make_safe_string(table);
+
+		std::string q = "INSERT OR REPLACE INTO ";
+		q += "\""; q += table ; q += "\" VALUES (?1, ?2);";
+		auto s = db.query(q.c_str());
+
+		s.bind(1, name);
+		s.bind(2, value.c_str(), value.size());
+		while (s.iterator()) {}
+	}
+
+	void get_property(Database &db, const char* _table, const char* name, std::string& value) {
+		std::string table = _table;
+		make_safe_string(table);
+		value.clear();
+
+		std::string q = "SELECT value FROM ";
+		q += "\""; q += table ; q += "\" WHERE key = ?1;";
+		auto s = db.query(q.c_str());
+
+		s.bind(1, name);
+		while (s.iterator()) {
+			value = s.column<std::string>(0);
+		}
+	}
+
 	};
 
 };

@@ -20,11 +20,59 @@
 
 #pragma once
 #include "back_sdl/imgui.h"
+#include "base/base.hpp"
+#include <functional>
+#include <map>
+#include <memory>
 
 namespace pb {
 
-namespace tool {
-	void ProfilerWindow(bool *p_open);
-};
+	class ToolManager;
+
+	class Tool : public Abstract {
+		public:
+		bool is_shown = true;
+		virtual ~Tool() = 0;
+		virtual void operator()(ToolManager& manager) = 0;
+		operator bool() const {return is_shown;}
+	};
+
+	using ToolConstructor = std::function<std::unique_ptr<Tool>()>;
+
+	class ToolManager {
+		private:
+		std::map<const HString, std::unique_ptr<Tool>> map;
+		std::string save_buffer;
+		public:
+		ToolManager() = default;
+		ToolManager(const ToolManager&) = default;
+		ToolManager(ToolManager&&) = default;
+		ToolManager& operator=(const ToolManager&) = default;
+		ToolManager& operator=(ToolManager&&) = default;
+		public:
+		bool add_window(const HString& name, std::unique_ptr<Tool>&& src);
+		bool add_window(const HString& name, ToolConstructor&& src) {
+			return add_window(name, src());
+		}
+		public:
+		void process();
+		int  count();
+		bool open(const HString& name);
+		bool is_opened(const HString& name);
+		bool close(const HString& name);
+		const std::map<const HString, std::unique_ptr<Tool>>& get_map();
+		public:
+		void save();
+		void load();
+		std::string& get_saved();
+	};
+
+	namespace tools {
+		ToolConstructor CProfiler();
+		ToolConstructor CMaster();
+
+		ToolConstructor CMetricsWindow();
+		ToolConstructor CLogWindow();
+	};
 
 };	// namespace pb

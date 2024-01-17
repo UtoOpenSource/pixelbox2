@@ -18,6 +18,7 @@
  */
 
 #pragma once
+#include <algorithm>
 #include <base/base.hpp>
 #include <stdexcept>
 #include <string>
@@ -103,6 +104,7 @@ class Statement : public Default {
 
 	bool column_blob(int index, void* rdst, size_t max);
 	bool column_text(int index, char* dst, size_t max);
+	bool column_text(int index, std::string& v);
 
 };
 
@@ -166,6 +168,17 @@ class Database : public Default {
 		return Statement(db, sql);
 	}
 };
+
+namespace db {
+	/* HIGH LEVEL API */
+	void make_safe_string(std::string& s);
+	void world_settings(Database& db);
+	void config_settings(Database &db);
+	void create_properties_table(Database &db, const char* _name);
+	void set_property(Database &db, const char* _table, const char* name, const std::string& value);
+	void get_property(Database &db, const char* _table, const char* name, std::string& value);
+};
+
 
 };
 

@@ -22,6 +22,7 @@
  * Please use compiler with C++20 concepts and general C++20 support to compile pixelbox! 
  */
 #include <iterator>
+#include <stdexcept>
 #if !((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L || PB_NO_STDVER_CHECK)
 #error C++17 support is required!
 #endif
@@ -119,6 +120,25 @@ namespace pb {
 	class Abstract : public Default {
 		public:
 		virtual ~Abstract() = 0;
+	};
+
+	template<typename ... Args>
+	bool format_v(std::string& result, const std::string& format, Args ... args ) {
+		result.clear();
+		int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+		if( size_s <= 0 ) return false;
+
+		auto size = static_cast<size_t>( size_s );
+		result.reserve(size);
+		std::snprintf( &result[0], size, format.c_str(), args ... );
+		return true;
+	}
+
+	template<typename ... Args>
+	std::string format_r(const std::string& format, Args ... args ) {
+		std::string result;
+		if (format_v(result, format, args...)) return result;
+		std::runtime_error("bad format string!");
 	};
 
 };

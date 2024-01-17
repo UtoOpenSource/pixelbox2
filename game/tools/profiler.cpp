@@ -24,15 +24,17 @@
 #include <base/base.hpp>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <vector>
 #include <set>
 
 #include "back_sdl/imgui.h"
+#include "game/tools/tools.hpp"
 
 namespace pb {
 
-namespace tool {
+namespace tools {
 
 using ZonePair = std::pair<const HString*, prof::prof_stats>;
 
@@ -46,7 +48,8 @@ struct compare_zones {
 
 using ZoneSet = std::multiset<std::pair<const HString*, prof::prof_stats>, compare_zones>;
 
-ImColor get_str_color(const HString& s) {
+/** utility  functions*/
+static ImColor get_str_color(const HString& s) {
 	size_t hash = std::hash<HString>{}(s);
 	const ImVec4 col = ImVec4(((hash&127)+127)/255.0, (((hash>>8)&127)+127)/255.0, (((hash>>16)&127)+127)/255.0, 1.0);
 	return col;
@@ -79,6 +82,29 @@ static std::string id_to_string(prof::ThreadID id) {
 	return strm.str();
 }
 
+/** Implementation */
+class Profiler : public Tool {
+	bool pause;
+	bool force_short_stats = false;
+	bool need_refresh = false;
+	bool short_stats = false;
+	// threads
+	prof::ThreadID current_thread;
+	std::vector<prof::ThreadID> threrads;
+	// history
+	size_t history_pos = 0;
+	std::vector<prof::StatsStorage2> data = std::vector<prof::StatsStorage2>(prof::history_size());	 // full stats
+	// most heavier zones (short stats)
+	ZoneSet zones;
+	private:
+	void refresh_data(prof::ThreadData& prof);
+	void call_plotter();
+	public:
+	~Profiler() {}
+	void operator()(ToolManager&);
+};
+
+/*
 static struct {
 	// flags
 	bool pause = false;
@@ -92,46 +118,38 @@ static struct {
 	std::vector<prof::StatsStorage2> data = std::vector<prof::StatsStorage2>(prof::history_size());	 // full stats
 	// most heavier zones (short stats)
 	ZoneSet zones;
-} curr;
+} curr; */
 
-static void refresh_data(prof::ThreadID current_thread, prof::ThreadData& prof) {
-	if (curr.pause && !curr.need_refresh) return;
-	curr.need_refresh = false;
+void Profiler::refresh_data(prof::ThreadData& prof) {
+	if (pause && !need_refresh) return;
+	need_refresh = false;
 
-	{
-		PROFILING_SCOPE("prof_get_threads", prof);
-		prof::get_threads(curr.threrads);
-	}
-		curr.zones.clear();
+	prof::get_threads(threrads);
+	zones.clear();
 
-	if (curr.short_stats || curr.force_short_stats) {	 // short
-		PROFILING_SCOPE("Prof_refresh_data", prof);
-		curr.data[curr.history_pos] = prof::get_summary(current_thread, curr.history_pos);
+	if (short_stats || force_short_stats) {	 // short
+		data[history_pos] = prof::get_summary(current_thread, history_pos);
 	} else {
 		// full
 		PROFILING_SCOPE("Prof_refresh_data_long", prof);
-		size_t i = curr.history_pos;
+		size_t i = history_pos;
 		size_t dst = prof::get_current_position(current_thread);
 		size_t size = prof::history_size();
 		if (dst >= size) throw "wat";
 		while (i != dst) {
-			curr.data[i] = prof::get_summary(current_thread, i);
+			data[i] = prof::get_summary(current_thread, i);
 			i++;
 			if (i >= size) i = 0;
 		}
-		curr.data[dst] = prof::get_summary(current_thread, i);
-		curr.history_pos = i;
+		data[dst] = prof::get_summary(current_thread, i);
+		history_pos = i;
 	}
 
-	{
-	PROFILING_SCOPE("Prof_sort_data", prof);
 	// sort
-	for (auto &p : curr.data[curr.history_pos]) {curr.zones.emplace(p);}
-	}
+	for (auto &p : data[history_pos]) {zones.emplace(p);}
 }
 
-
-static void call_plotter() {
+void Profiler::call_plotter() {
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 	const ImVec2 pos = ImGui::GetCursorScreenPos();
 	const auto scr = ImGui::GetContentRegionAvail();
@@ -146,7 +164,7 @@ static void call_plotter() {
 		const float range = scr.y - 5;
 		//p.y = range;
 
-		for (auto item : curr.data[i]) {
+		for (auto item : data[i]) {
 			float item_v = (item.second.owntime / max_v) * range;
 			draw_list->AddRectFilled(ImVec2(p.x, p.y), ImVec2(p.x + per_item, p.y + item_v), get_str_color(*item.first));
 			p.y += item_v;
@@ -154,64 +172,64 @@ static void call_plotter() {
 	}
 }
 
-void ProfilerWindow(bool *p_open) {
-	static prof::ThreadID current_thread;
+void Profiler::operator()(ToolManager&) {
 	auto prof = prof::get_thread_data();
 
 	// Main body of the window
-	if (!ImGui::Begin("Pofiler", p_open)) {
+	if (!ImGui::Begin("Pofiler", &is_shown)) {
 		// Early out if the window is collapsed, as an optimization.
 		ImGui::End();
 		return;
 	}
 
-	if (ImGui::Button(curr.pause ? "Resume" : "Pause")) {
-		curr.pause = !curr.pause;
+	if (ImGui::Button(pause ? "Resume" : "Pause")) {
+		pause = !pause;
 	}
 	ImGui::SameLine();
 
-	if (!curr.pause) ImGui::BeginDisabled();
+	if (!pause) ImGui::BeginDisabled();
 	if (ImGui::Button("Refresh Once")) {
-		curr.need_refresh = true;
+		need_refresh = true;
 	}
-	if (!curr.pause) ImGui::EndDisabled();
+	if (!pause) ImGui::EndDisabled();
 	ImGui::SameLine();
 
-	if (ImGui::Button((std::string("Force short stats :") + (curr.force_short_stats? "[+]" : "[-]")).c_str())) {
-		curr.force_short_stats = !curr.force_short_stats;
+	if (ImGui::Button((std::string("Force short stats :") + (force_short_stats? "[+]" : "[-]")).c_str())) {
+		force_short_stats = !force_short_stats;
 	}
 
 	// get data
-	{
-	refresh_data(current_thread, prof);
-	}
+	refresh_data(prof);
 
-	// draw zones
-	static HString selected;
+	// draw threads
 	{
 		ImGui::BeginChild("threads_panel", ImVec2(150, 0), ImGuiChildFlags_Border | ImGuiChildFlags_ResizeX);
-		for (auto v : curr.threrads) {
+		for (auto v : threrads) {
 			std::string str("Thread ");
 			str += id_to_string(v);
-			if (ImGui::Selectable(str.c_str(), v == current_thread)) current_thread = v;
+			if (ImGui::Selectable(str.c_str(), v == current_thread)) {
+				current_thread = v;
+				need_refresh = true;
+				history_pos = 0;
+			}
 		}
 		ImGui::EndChild();
 	}
 	ImGui::SameLine();
 
-	// draw calls
+	// draw zones
 	{
 		ImGui::BeginGroup();
 		ImGui::BeginChild("info_panel", ImVec2(0,
 																					 -ImGui::GetFrameHeightWithSpacing()));	 // Leave room for
 																																									 // 1 line below us
 		std::string name = id_to_string(current_thread);
-		ImGui::Text("Thread: %s\t\t(%i active zones)", name.c_str(), (int)curr.zones.size());
+		ImGui::Text("Thread: %s\t\t(%i active zones)", name.c_str(), (int)zones.size());
 
 		ImGui::Separator();
 		if (ImGui::BeginTabBar("##Tabs", ImGuiTabBarFlags_None)) {
 			if (ImGui::BeginTabItem("Calls List")) {
-				curr.short_stats = true;
+				short_stats = true;
 				if (ImGui::BeginTable("##split", 4, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY)) {
 					ImGui::TableSetupScrollFreeze(0, 1);
 					ImGui::TableSetupColumn("Zone name");
@@ -221,14 +239,14 @@ void ProfilerWindow(bool *p_open) {
 					ImGui::TableHeadersRow();
 
 					// Iterate placeholder objects (all the same data)
-					add_calltable_row(curr.zones);
+					add_calltable_row(zones);
 
 					ImGui::EndTable();
 				}
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Plotter")) {
-				curr.short_stats = false;
+				short_stats = false;
 				ImGui::TextWrapped("Pause and see 'Call list' for associated colors");
 				call_plotter();
 
@@ -243,6 +261,10 @@ void ProfilerWindow(bool *p_open) {
 	return;
 }
 
-};	// namespace tool
+ToolConstructor CProfiler() {
+	return [](){return std::make_unique<Profiler>();};
+}
+
+};	// namespace tools
 
 };	// namespace pb
