@@ -18,6 +18,7 @@
 
 namespace pb {
 
+	/** most accurate clocksource in the system */
 	extern class ClockSource {
 		double oldtime = 0; 
 		float  frame_time = 0;

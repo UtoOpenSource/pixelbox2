@@ -22,9 +22,6 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
-#include <signal.h>
-
-#define BRK() //raise(SIGTRAP); // At the location of the BP.
 
 using std::this_thread::sleep_for;
 
@@ -85,7 +82,6 @@ static void thread_work(int ti) {
 						//sleep_for(std::chrono::milliseconds(1));
 					}
 				}
-		BRK();
 		prof.step();
 }
 

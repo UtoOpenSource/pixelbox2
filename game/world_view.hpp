@@ -19,4 +19,17 @@
 
  #pragma once
 
- 
+ #include "base.hpp"
+namespace pb {
+
+	class WorldViewer : public Default {
+		public:
+		WorldViewer();
+		~WorldViewer();
+		WorldViewer(const WorldViewer &) = delete;
+		WorldViewer(WorldViewer &&) = delete;
+		WorldViewer &operator=(const WorldViewer &) = delete;
+		WorldViewer &operator=(WorldViewer &&) = delete;
+	};
+
+};

@@ -22,7 +22,7 @@
 #include <memory>
 #include <stdexcept>
 #include "back_sdl/graphics.hpp"
-#include "imgui.h"
+#include "external/imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "galogen.h"

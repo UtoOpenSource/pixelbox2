@@ -28,6 +28,7 @@ namespace pb {
 	// Value for associative metadata map (see below)
 	// can keep direct references to values like entities and chunks.
 	// But will be serialized back into UUID/Chunk position when saved
+	// TODO FIXME NAN KEY STORAGING PROBLEM MUST BE FIXED!!!1
 	using MetaKey = std::variant<HString, double>;
 	using MetaValue = std::variant<double, HString, shared_ptr<Shared>>;
 

@@ -1,6 +1,6 @@
 /*
  * This file is a part of Pixelbox - Infinite 2D sandbox game
- * Types Serialization
+ * Useful utilitirs to test stuff :p
  * Copyright (C) 2023-2024 UtoECat
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,29 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
- #pragma once
- #include <sstream>
- #include <utility>
- #include "engine/database.hpp"
-
-namespace pb {
-
-	template <class T>
-	struct Serialize {
-		using value = std::false_type;
-		void serialize(std::stringstream& out, const T& value);
-	};
-
-	
-	template <class T>
-	using is_serializeable = Serialize<T>::value;
-
-	template<>
-	struct Serialize<char> {
-		using value = std::true_type;
-		void serialize(std::stringstream& out, char v) {
-			out << v;
-		}
-	};
-
-};
+#include <signal.h>
+/**
+ * Raises TRAP syscall to notify debugger. 
+ * Will crash in release builds. That's why all instances of this
+ * MUST BE REMOVED in release verions, that will be pushed into a MASTER branch!
+ */
+#define BRK() raise(SIGTRAP); // At the location of the BP.

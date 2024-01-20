@@ -44,6 +44,8 @@ namespace pb {
 	// You should use non-const comparison and get_hash() functions!
 	// they can save hash for later use...
 	// also hash is precalculated when constructed from std::string, const char* or other stuff!
+	// but NOT when using any modificational operators! so make sure to regennerate hash when all
+	// changes are finally done and you wish to use this string in comparing again
 	class HString : public std::string {
 		friend class std::hash<HString>;
 		private:
@@ -122,6 +124,10 @@ namespace pb {
 		virtual ~Abstract() = 0;
 	};
 
+	/**
+	 * Widely used string formatting function. It returns data into the std::string by value, specified
+	 * at the first argument.
+	 */
 	template<typename ... Args>
 	bool format_v(std::string& result, const std::string& format, Args ... args ) {
 		result.clear();
@@ -134,6 +140,11 @@ namespace pb {
 		return true;
 	}
 
+	/**
+	 * Widely used string formatting function. It returns formatted std::string.
+	 * If you already have an instance of std::string with associated buffer, 
+	 * consider using pb::format_v() instead!
+	 */
 	template<typename ... Args>
 	std::string format_r(const std::string& format, Args ... args ) {
 		std::string result;
@@ -143,7 +154,7 @@ namespace pb {
 
 };
 
-// here is hash function 
+// here is the hash function 
 template<>
 struct std::hash<pb::HString> {
 	std::size_t operator()(pb::HString& s) const noexcept {

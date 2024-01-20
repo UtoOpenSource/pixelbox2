@@ -14,7 +14,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 # lib Base
 file(GLOB Base_SRC CONFIGURE_DEPENDS "base/*.cpp" "base/tests/*.cpp")
 add_library(libBase OBJECT ${Base_SRC})
-target_include_directories(libBase INTERFACE "${PROJECT_BINARY_DIR}/base")
+target_include_directories(libBase INTERFACE "base/" "external/")
 
 #lib External
 file(GLOB External_SRC CONFIGURE_DEPENDS "external/*.cpp" "external/*.c")
@@ -39,6 +39,7 @@ target_link_libraries(libSDL INTERFACE ${SDL2_LIBRARIES})
 #lib Game
 file(GLOB Game_SRC CONFIGURE_DEPENDS "game/*.cpp" "game/*/*.cpp")
 add_library(libGame OBJECT ${Game_SRC})
+target_include_directories(libGame PUBLIC "base/" "external/")
 target_link_libraries(libGame PUBLIC $<TARGET_OBJECTS:libBase> $<TARGET_OBJECTS:libEngine> $<TARGET_OBJECTS:libBackend> $<TARGET_OBJECTS:libExternal>)
 
 message("${Base_SRC}")

@@ -19,10 +19,10 @@
  */
 
 #include <memory>
-#include "back_sdl/imgui.h"
+#include "imgui.h"
 #include "base/base.hpp"
 #include "game/tools/tools.hpp"
-#include "back_sdl/imgui_internal.h"
+#include "imgui_internal.h"
 
 namespace pb {
 
@@ -62,7 +62,9 @@ bool ToolManager::open(const HString& name) {
 bool ToolManager::add_window(const HString& name, std::unique_ptr<Tool>&& src) {
 	auto v = map.find(name);
 	if (v != map.end()) return false;
-	return map.emplace(name, std::move(src)).second;
+	auto r = map.emplace(name, std::move(src));
+	r.first->second->is_shown = false;
+	return r.second;
 }
 
 bool ToolManager::close(const HString& name) {
