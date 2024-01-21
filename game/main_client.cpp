@@ -28,6 +28,7 @@
 
 #include "tools/tools.hpp"
 #include "game/world_view.hpp"
+#include "engine/network.hpp"
 
 namespace pb {
 

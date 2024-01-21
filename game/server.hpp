@@ -17,16 +17,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <base/base.hpp>
-#include <exception>
 #include <iostream>
-#include <vector>
+#include <memory>
+#include "engine/network.hpp"
+#include "base.hpp"
+#include "engine/database.hpp"
 
 namespace pb {
 
-	// used in main() function only anyway...
-	void main_server(std::vector<const char*> argv) {
-		
-		return;	
-	}
+	class GamerServerBase {
+		protected:
+		std::unique_ptr<ENetServer> server;
+		Database database;
+		public:
+		GamerServerBase(const char* db_file, int port, int max_cli = 1) {
+			// create server
+			server = std::make_unique<ENetServer>(ProtocolInfo(NULL, port, 5, max_cli));
+			if (!db_file) {
+				std::cerr << "No file specified - in memory database is used for testing" << std::endl;
+				db_file = ":memory:";
+			}
+			database.open(db_file);
+			db::world_settings(database); // configure PRAGMA's for world storade db
+		}
+	};
+
 };
