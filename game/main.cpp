@@ -24,6 +24,7 @@
 #include <vector>
 #include "base/profiler.hpp"
 #include <base/doctest.h>
+#include "external/enet.h"
 
 /*
 #include "imgui.h"
@@ -71,6 +72,8 @@ int parse_args(int argc, const char** argv, std::vector<const char*>& skipped) {
 }
 
 int main(int argc, const char** argv) {
+	enet_initialize();
+
 	auto _td = pb::prof::make_thread_data();
 	std::vector<const char*> skipped_argv;
 
@@ -88,5 +91,7 @@ int main(int argc, const char** argv) {
 	} catch (...) {
 		std::cout << "Unhandled exception of unknown type! : " << std::endl;
 	}
+
+	enet_deinitialize();
 	return -1;
 }

@@ -137,13 +137,20 @@ namespace impl {
 	static Resource<HistoryMap, void> prof_history;
 	static Resource<std::set<HString>, SpinLock> string_cache;
 
+	thread_local DataImpl* _data_ref = nullptr;
+
 	DataImpl& get_thread_data() {
+		if (_data_ref) return *_data_ref; // fast path
+
 		auto id = curr_id();
 		auto ruse = prof_data.use(); // lock
 		auto& data = ruse.ref;
 
 		auto v = data.find(id); // we don't want to always call a constructor
-		if (v != data.end()) return v->second;
+		if (v != data.end()) {
+			_data_ref = &v->second;
+			return v->second;
+		}
 
 		//return data.emplace(id).first->second; // else
 		throw std::runtime_error("thread was not registered!");
