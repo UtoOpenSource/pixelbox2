@@ -44,7 +44,7 @@ namespace pb {
 	// You should use non-const comparison and get_hash() functions!
 	// they can save hash for later use...
 	// also hash is precalculated when constructed from std::string, const char* or other stuff!
-	// but NOT when using any modificational operators! so make sure to regennerate hash when all
+	// but NOT when using any modificational operators! so make sure to regenerate hash when all
 	// changes are finally done and you wish to use this string in comparing again
 	class HString : public std::string {
 		friend class std::hash<HString>;
@@ -131,13 +131,13 @@ namespace pb {
 	template<typename ... Args>
 	bool format_v(std::string& result, const std::string& format, Args ... args ) {
 		result.clear();
-		int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-		if( size_s <= 0 ) return false;
+		int size_s = snprintf( nullptr, 0, format.c_str(), args... );
+		if( size_s < 0 ) return false; // error here?
 
-		auto size = static_cast<size_t>( size_s );
-		result.reserve(size);
-		std::snprintf( &result[0], size, format.c_str(), args ... );
-		return true;
+		auto size = static_cast<size_t>(size_s + 1); // Extra space for '\0'
+		result.resize(size);
+		auto vv = snprintf( &result[0], size, format.c_str(), args... );
+		return (vv > 0);
 	}
 
 	/**
@@ -146,11 +146,19 @@ namespace pb {
 	 * consider using pb::format_v() instead!
 	 */
 	template<typename ... Args>
-	std::string format_r(const std::string& format, Args ... args ) {
+	std::string format_r(const std::string& format, Args... args ) {
 		std::string result;
-		if (format_v(result, format, args...)) return result;
-		std::runtime_error("bad format string!");
+		if (format_v(result, format, args...)) {
+			return result;
+		}
+		throw std::runtime_error("bad format string!");
 	};
+
+	/**
+	 * Constant function to get a floating point number from string.
+	 * Locale-independent
+	 */
+	double strtod(const char *str, char **end);
 
 };
 

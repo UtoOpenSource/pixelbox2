@@ -29,14 +29,14 @@ namespace pb {
 	// can keep direct references to values like entities and chunks.
 	// But will be serialized back into UUID/Chunk position when saved
 	// TODO FIXME NAN KEY STORAGING PROBLEM MUST BE FIXED!!!1
-	using MetaKey = std::variant<HString, double>;
-	using MetaValue = std::variant<double, HString, shared_ptr<Shared>>;
+	using MetaKey = std::variant<double, HString>;
+	using MetaValue = std::variant<double, HString, weak_ptr<Metadata>>;
 
 	// Associative array for metadata. see below.
 	using MetapropMap = tsl::robin_map<MetaKey, MetaValue>;
-
+ 
 	// Chunk Associative array
-	using ChunkRobinMap = tsl::robin_map<ChunkPos, class Chunk*>;
+	using ChunkRobinMap = tsl::robin_map<ChunkPos, shared_ptr<Chunk>>;
 
 /*
  * Every Object that relates to the game itself : Chunk, Entyty,
@@ -48,8 +48,8 @@ namespace pb {
  * dynamic and less depended on exact object structures!
  *
  * All mods are primary use ONLY metadata. 
+ * We don't make this shared to prevent recursion
  */
-
 	class Metadata : public Shared {
 		public:
 		MetapropMap map;

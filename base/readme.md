@@ -8,4 +8,6 @@ functions/libraries/systems all over the place :
 - Base objects implementation
 - ~~Linear Allocator~~
 - Spinlock
-- Constexpr Endian detection
+- Constexpr Endian detection (TODO: may not work anymore on C++23)
+- Resources for multithreading (local to get resource, destruction does unlock mutex)
+- Scopeguard to add quick RAII types without much of boilerplate

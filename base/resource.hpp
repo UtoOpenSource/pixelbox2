@@ -42,8 +42,8 @@ class Resource : public T{
 };
 
 /*
-For debug
-*/
+ * For debug. Turns resource aqquring and releaseing into NOOP
+ */
 template <class T>
 struct ResUsage<T, void> {
 	T& ref;

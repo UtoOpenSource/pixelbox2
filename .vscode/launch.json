@@ -1,0 +1,16 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+			{
+					"name": "Debug",
+					"type": "gdb",
+					"request": "launch",
+					"arguments": "-t",
+					"target": "${workspaceRoot}/build/pixelbox", // Binary to exec
+					//"args": ["-t"], // Arguments passed
+					"cwd" : "${workspaceRoot}",
+					"stopAtEntry": true,
+					"preLaunchTask": "cmake-build"
+			}
+	]
+}

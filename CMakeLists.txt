@@ -49,5 +49,5 @@ target_link_libraries(pixelbox PUBLIC libGame)
 target_link_libraries(pixelbox PUBLIC libSDL GL)
 target_include_directories(pixelbox PUBLIC "${PROJECT_BINARY_DIR}")
 
-add_compile_options(-fsanitize=address -O2)
-add_link_options(-fsanitize=address)
+add_compile_options(-fsanitize=undefined -Og)
+add_link_options(-fsanitize=undefined)

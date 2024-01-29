@@ -24,6 +24,7 @@
 namespace pb {
 
 	// subject for "Observers"
+	// TODO : This thing is horrible...
 	template <typename F, typename... Args>
 	class Subject {
 		protected:

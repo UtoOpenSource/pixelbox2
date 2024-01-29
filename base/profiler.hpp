@@ -67,6 +67,7 @@ class ThreadData {
 	 * NEW REQUIREMENT : All nemes passed to name must be very unique.
 	 * NEW ISSUE : Any unique passed string will be keeped in memory FOREVER!
 	 * : This is not a good idea to let unsafe enviroment use this function!
+	 * Also, zone stack has implementation-defined boundary limit... yep
 	 */
 	void begin(const HString& name);
 
@@ -81,7 +82,7 @@ class ThreadData {
 	 *
 	 * ~~THIS FUNCTION REQUIRES FOR ALL PUSHED ENTRIES TO BE POPPED OUT!~~
 	 * ~~Aka, this function MAY be ONLY called after all profiling zones are
-	 * done.~~ This requirement is removed in current version : you can freely
+	 * done.~~ This requirement is removed in current version : you can safely
 	 * tick in the middle of deep zone stack :)
 	 */
 	 void step();
@@ -99,7 +100,10 @@ class ThreadData {
 ThreadData init_thread_data();
 void       free_thread_data(ThreadData);
 
-/** get ThreadData for current thread. CANNOT BE USED BEFORE INIT OR AFTER FREE! */
+/** get ThreadData for current thread. CANNOT BE USED BEFORE INIT OR AFTER FREE!
+ * this thing is likely to be cached in a thread_local variable, so it's pretty good
+ * un terms of perfomance. This is really a step forward.
+ */
 ThreadData get_thread_data();
 
 /** convinient wrapper around initialization things above */
@@ -122,7 +126,7 @@ inline pb::ScopeGuard<void()> make_thread_data() {
 struct prof_stats {
 	float owntime = 0;	// how long this entry was executed (subentries are
 									// EXCLUDED)
-	float sumtime = 0;	// how long this entry and all CALLED subentries are
+	float sumtime = 0;	// how long this entry and all called subentries are
 									// executed
 	int ncalls = 0;	// number of "calls" to this entry
 };

@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
 #include "engine/network.hpp"
 
 #include <base.hpp>
@@ -34,6 +33,13 @@
  */
 namespace pb {
 
+	static void HostDefaultConfig(ENetHost* host) {
+		// TODO Adjust to better values!
+		host->maximumPacketSize = 1024 * 32;
+		host->maximumWaitingData = 1024 * 128;
+	}
+
+/*
 void ENetBase::on_event_recv(ENetEvent& ev) {
 	auto conn = ENetConnection(ev.peer);
 	switch (ev.type) {
@@ -71,15 +77,14 @@ void ENetBase::on_event_recv(ENetEvent& ev) {
 }
 
 void ENetBase::destroy() {
-	/** request disconnection */
+	if (!host) return;
+
 	foreach ([](ENetPeer* peer) {
 		enet_peer_timeout(peer, 2000, 1000, 5000);
 		enet_peer_disconnect(peer, -1); // shutdown
-	})
-		;
+	});
 
 	flush();
-
 	int attempts = host->peerCount * 8;	 // process as much as *8 events
 	int dummies = host->peerCount;
 
@@ -106,9 +111,9 @@ void ENetBase::destroy() {
 };
 
 bool ENetClient::connect(const char* ip, unsigned short port) {
-	ProtocolInfo info;
 	info.ip = NULL;
 	info.port = port;
+	
 	create_client();
 	server = nullptr;
 
@@ -118,7 +123,9 @@ bool ENetClient::connect(const char* ip, unsigned short port) {
 	}
 
 	// connect
+	info.ip = ip;
 	const ENetAddress addr = info.getAddress();
+
 	server = enet_host_connect(host, &addr, info.nchannels, 0);
 	if (!server) {
 		std::cerr << "ENetClient : can't create peer!" << std::endl;
@@ -127,7 +134,7 @@ bool ENetClient::connect(const char* ip, unsigned short port) {
 
 	// process events
 	ENetEvent event;
-	if (enet_host_service(host, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
+	while (enet_host_service(host, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
 		on_event_recv(event);	 // do init
 		return true;
 	}
@@ -136,6 +143,6 @@ bool ENetClient::connect(const char* ip, unsigned short port) {
 err:
 	force_destroy();
 	return false;
-}
+} */
 
 };	// namespace pb
