@@ -19,10 +19,12 @@
  */
 
 #include <memory>
+#include "SDL_misc.h"
 #include "imgui.h"
 #include "base/base.hpp"
 #include "game/tools/tools.hpp"
 #include "imgui_internal.h"
+#include "game/version.hpp"
 
 namespace pb {
 
@@ -106,6 +108,16 @@ class Master : public Tool {
 		}
 
 		if (ImGui::BeginTabBar("master_tabs")) {
+
+			if (ImGui::BeginTabItem("About")) {
+				ImGui::TextWrapped("Pixelbox ver %s", VERSION_STR.c_str());
+				ImGui::TextWrapped("Infinite sandbox game. Prototyping stage");
+
+				if (ImGui::Button("Star me on GitHub!")) {
+					SDL_OpenURL("https://github.com/UtoOpenSource/pixelbox2");
+				}
+				ImGui::EndTabItem();
+			}
 
 			if (ImGui::BeginTabItem("Execute")) {
 				ImGui::TextWrapped("Here will be a list of all the tools you can run :p");
