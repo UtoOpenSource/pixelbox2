@@ -21,9 +21,9 @@
 namespace pb {
 
 	static constexpr int VERSION_MAJOR = 0;
-	static constexpr int VERSION_MINOR = 8;
-	static constexpr int VERSION_PATCH = 8;
+	static constexpr int VERSION_MINOR = 9;
+	static constexpr int VERSION_PATCH = 1;
 
-	static constexpr std::string VERSION_STR = "0.9.0";
+	static constexpr std::string VERSION_STR = "0.9.1";
 
 };
