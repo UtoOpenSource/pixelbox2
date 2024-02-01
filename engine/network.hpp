@@ -18,18 +18,19 @@
  */
 
 #pragma once
-#include <string.h>
 #include <assert.h>
+#include <string.h>
 
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string_view>
-#include <set>
+#include <typeinfo>
 
 #include "base/base.hpp"
-#include "base/event.hpp"
+#include "base/sharedobj.hpp"
 #include "external/enet.h"
 
 namespace pb {
@@ -58,72 +59,100 @@ struct ProtocolInfo {
 class ENetBase;
 class ENetServer;
 class ENetClient;
+class ENetConnection;
 
-class ENetPeerImpl {
+/** user-specified event handler for peer + userdata. Base class*/
+class ENetHandler : public Shared<ENetHandler> {
+ public:
+	ENetHandler() = default;
+	virtual ~ENetHandler(){};
+
+ public:
+	virtual void net_connect(ENetConnection& con) = 0;
+	virtual void net_switch_out(ENetConnection& con) = 0;
+	virtual void net_recieve(ENetConnection& con, uint8_t channel, std::string_view data) = 0;
+	virtual void net_update(ENetConnection& con) = 0;
+	virtual void net_disconnect(ENetConnection& con, bool is_timeout) = 0;
+};
+
+/** ENetPeer wrapper + event handler custom userdata */
+class ENetConnection : public Static {
  protected:
 	::ENetPeer* peer = nullptr;
-	ENetPeerImpl(::ENetPeer* ptr) : peer(ptr) {assert(peer != nullptr);};
+	bool is_disconnecting = false;
+	ENetConnection(::ENetPeer* ptr) : peer(ptr) { assert(peer != nullptr); };
 	friend class ENetBase;
 
  public:
-	ENetPeerImpl(const ENetPeerImpl&) = delete;
-	ENetPeerImpl(ENetPeerImpl&&) = delete;
-	ENetPeerImpl& operator=(const ENetPeerImpl&) = delete;
-	ENetPeerImpl& operator=(ENetPeerImpl&&) = delete;
+	~ENetConnection() = default;
 
- public: // virtual methods
-	virtual ~ENetPeerImpl() {}
-	virtual void on_disconnect(bool timeouted) = 0; // called before potential destruction
-	virtual void on_recieve(uint8_t channel, std::string_view data) = 0;
+ public:
+	// userdata
+	std::shared_ptr<ENetHandler> handler;
+	ENetHandler* operator->() { return handler ? handler.get() : throw std::runtime_error("no handler is set for this peer"); }
 
-private: // handler caller
-	void h_disconnect(bool fire_event = true) {
-		assert(peer != nullptr);
-		if (fire_event) this->on_disconnect(0);
-		peer->data = nullptr;
-	}
+ private:	 // handler caller
 
-	void h_reset() {
-		assert(peer != nullptr);
-		peer = nullptr;
-		delete this;
+	bool disconnecting_state() {
+		if (is_disconnecting) return true;
+		is_disconnecting = true;
+		return false;
 	}
 
  public:	// methods
-	operator bool() { return peer ? peer->state == ENET_PEER_STATE_CONNECTED : false;}
-	
-	/** @warning this object will be destructed after this and memory freed! 
+	operator bool() { return peer ? peer->state == ENET_PEER_STATE_CONNECTED : false; }
+
+	ENetBase* get_host() {
+		return peer ? (ENetBase*)peer->host->userdata : nullptr;
+	}
+
+	void set_handler(std::shared_ptr<ENetHandler>&& src) {
+		bool run = (handler != src && src);
+		if (run) {
+			if (handler) handler->net_switch_out(*this);
+			handler = std::move(src);
+			if (handler) handler->net_connect(*this);
+		}
+	}
+
+	/** @warning this object will be destructed after this and memory freed!
 	 *  do not use object after calling this function.
 	 *  on_disconnect callback is not called, client would not know about losing a connection.
 	 */
-	void reset() {
-		h_disconnect(false);
-		enet_peer_reset(peer);
-		h_reset();
-	}
+	void reset();
 
 	/** @warning this object will be destructed after this and memory freed!
 	 * do not use object after calling this function.
 	 * triggers on_disconect event
 	 */
-	void disconnect_now() {
-		h_disconnect(true);
-		enet_peer_disconnect_now(peer, 0);
-		h_reset();
-	}
+	void disconnect_now();
 
-	/** @warning do not call this inside errorhandler
+	/** @warning do not call this inside net_disconnect!
 	 */
-	void disconnect() {
+	bool disconnect() {
 		assert(peer != nullptr);
+
+		// hehe
+		if (disconnecting_state()) {
+			return false;
+		}
+
 		enet_peer_disconnect(peer, 0);
+		return true;
 	}
 
-	/** will call on_disconnect when all packets from and to client are done.
+	/** @warning do not call this inside net_disconnect!
 	 */
-	void disconnect_later() {
+	bool disconnect_later() {
 		assert(peer != nullptr);
+
+		// hehe
+		if (disconnecting_state()) {
+			return false;
+		}
+
 		enet_peer_disconnect_later(peer, 0);
+		return true;
 	}
 
 	bool send(uint8_t channel, ENetPacket* data) {
@@ -137,54 +166,162 @@ private: // handler caller
 		return p ? send(channel, p) : false;
 	}
 
-	bool operator<(const ENetPeerImpl& with) { return peer < with.peer; }
+	bool operator<(const ENetConnection& with) { return peer < with.peer; }
 };
 
-using ENetConnection = std::reference_wrapper<ENetPeerImpl>;
+using ENetHandlerMaker = std::function<std::shared_ptr<ENetHandler>()>;
 
-class ENetBase {
-	protected:
-	ENetHost* host;
+class ENetBase : public Static {
+	friend class ENetConnection;
+ protected:
+	ENetHost* host = nullptr;
 	ProtocolInfo info;
 
-	// if we should shutdown connection after loop
-	bool defer_disconnect = false;
+	// don't ask
+	std::set<ENetConnection*> peers;
+	size_t peers_count = 0; // count of peers
 
-	// prevents any peer to connecting to this server
-	bool disable_connections = false;
+	/** initial handler */
+	ENetHandlerMaker handler_maker;
+	void default_init();
 
-	void on_event_recv(ENetEvent& ev);
-	public:
+	/**
+	 * Gets event from the queue. You should call handle_event() 
+	 * and must call free_event(). Return false if there is no events left
+	 *
+	 * @param timeout in milliseconds
+	 */
+	bool service_events(ENetEvent* ev, uint32_t timeout = 0);
 
-	bool create_server() {
-		if (host) std::runtime_error("host is already exists!");
-		defer_disconnect = false; disable_connections = false;
-		auto addr = info.getAddress();
-		host = enet_host_create(&addr, info.nconnections, info.nchannels, 0, 0);
-		return host != nullptr;
+	/// default handlier. Returns associated Connection (or nullptr on error!)
+	ENetConnection* handle_event(const ENetEvent& ev);
+
+	// deinitialize event
+	void free_event(const ENetEvent& ev);
+
+	void raw_peer_reset(ENetConnection& conn) {
+		if (conn.peer) conn.peer->data = nullptr;
+		conn.peer = nullptr;
+		peers.erase(&conn);
+		delete &conn;
 	}
 
-	bool create_client() {
-		if (host) std::runtime_error("host is already exists!");
-		defer_disconnect = false; disable_connections = false;
-		host = enet_host_create(NULL, info.nconnections, info.nchannels, 0, 0);
-		return host != nullptr;
+ public:
+	ENetBase() = delete;
+	ENetBase(const ENetBase&) = delete;
+	ENetBase(ENetHandlerMaker f) : handler_maker(f) {
+		if (!handler_maker) std::runtime_error("Handler maker function is required!");
 	}
 
-	operator bool() {return host != nullptr;}
+	operator bool() { return host != nullptr; }
+	void set_address(ProtocolInfo i) { info = i; }
 
 	/** calls function at the first argument on all the peers connected to this host.*/
-	void foreach (std::function<void(ENetPeerImpl&)> cb) {
+	void foreach (std::function<void(ENetConnection&)> cb) {
 		assert(host != nullptr);
-		ENetPeer* currentPeer;
 
-		for (currentPeer = host->peers; currentPeer < &host->peers[host->peerCount]; ++currentPeer) {
-			if (currentPeer->state != ENET_PEER_STATE_CONNECTED) continue;
-			ENetPeerImpl* data = static_cast<ENetPeerImpl*>(currentPeer->data);
-			assert(data != nullptr);
-			cb(*data);
+		for (ENetConnection* conn : peers) {
+			cb(*conn);
 		}
 	}
+
+	/**
+	 * iterate over all peers, but runs callback only on connections, that have
+	 * specific handler associated, including subtypes.
+	 * 
+	 * call of foreach() is equal to call foreach_handler<ENetHandler>(), except for extra
+	 * callack argument - handler itself :p
+	 */
+	template <typename HT>
+	void foreach_handler(std::function<void(ENetConnection&, std::shared_ptr<HT>)> cb) {
+		assert(host != nullptr);
+
+		for (ENetConnection* conn : peers) {
+			auto handler = std::dynamic_pointer_cast<HT>(conn->handler);
+			if (handler) cb(*conn, handler);
+		}
+	}
+
+	/** you cannot use this connection after this */
+	void reset_peer(ENetConnection& conn) {
+		enet_peer_reset(conn.peer);
+		raw_peer_reset(conn);
+	}
+
+	/** you cannot use this connection after this */
+	void disconnect_now(ENetConnection& conn) {
+		enet_peer_disconnect_now(conn.peer, 0);
+		conn->net_disconnect(conn, 0);
+		raw_peer_reset(conn);
+	}
+
+	void force_destroy() {
+		// cleanup all userdata
+		foreach ([](ENetConnection& conn) { conn.reset(); });
+
+		if (host) enet_host_destroy(host);
+		host = nullptr;
+	}
+
+	/** flushes all packages to be finally sended! No need to do if you regulary call a service()! */
+	void flush() {
+		assert(host != nullptr);
+		enet_host_flush(host);
+	}
+
+	virtual ~ENetBase() { force_destroy(); }
+
+	void destroy();
+
+	/** Creates server host used address and protocol info specified in set_address. Returns false on error */
+	bool create_server();
+
+	/** Creates client host used address and protocol info specified in set_address Returns false on error */
+	bool create_client();
+};
+
+class ENetClient : public ENetBase {
+ public:
+	ENetClient(ENetHandlerMaker f) : ENetBase(f) {};
+
+	ENetConnection* get_server() {
+		return peers.begin() == peers.end() ? nullptr : *(peers.begin());
+	}
+
+	~ENetClient() {
+		// all other stuff is done in base
+	}
+
+	/** create AND connect a client to the specified server! */
+	bool connect(const char* ip, unsigned short port = DEFAULT_PORT);
+
+	/** function for a user :) */
+	void disconnect() {
+		destroy();	// destroy connection, all user data, etc.
+	}
+
+	/* same as running() + extra check */
+	bool is_connected() { return get_server() != nullptr; }
+
+	/** @warning channel starts FROM ZERO!!!! */
+	bool send(uint8_t channel, ENetPacket* data) {
+		auto* server = get_server();
+		if (!server || !host) return false;
+		return server->send(channel, data);
+	}
+
+	/** @warning channel starts FROM ZERO!!!! */
+	bool send(uint8_t channel, const std::string_view data) {
+		auto* server = get_server();
+		if (!server || !host) return false;
+		ENetPacket* p = enet_packet_create(data.data(), data.size(), 0);
+		if (!p) return false;
+		return send(channel, p);
+	}
+
+};
+
+class ENetServer : public ENetBase {
 
 };
 
@@ -193,7 +330,7 @@ class ENetBase {
 #if 0
 /**
  * @description ENet Wrapper
- *
+ */
 namespace pb_old {
 
 static constexpr unsigned short DEFAULT_PORT = 4792;
@@ -228,61 +365,6 @@ using ConnectionData = std::shared_ptr<int>;
 
 class ENetBase;
 
-class ENetConnection {
-	ENetPeer* peer = nullptr;
-	ConnectionData u_data;
-	friend class ENetBase;
-
- public:
-	/** please do not use in your app  :( *
-	explicit ENetConnection(ENetPeer* p) { peer = p; }
-	ENetConnection(const ENetConnection&) = default;
-	ENetConnection(ENetConnection&&) = default;
-	ENetConnection& operator=(const ENetConnection&) = default;
-	ENetConnection& operator=(ENetConnection&&) = default;
-	~ENetConnection() {}	// nothing
- public:
-	operator bool() { return peer != nullptr; }
-
-	void disconnect() {
-		if (!peer) return;
-		enet_peer_disconnect(peer, 0);
-	}
-
-	void disconnect_later() {
-		if (!peer) return;
-		enet_peer_disconnect_later(peer, 0);
-	}
-
-	/*
-	* @warning you cannot use object methods after this!
-	void reset() { // forcefully disconnect
-		if (!peer) return;
-		enet_peer_reset(peer);
-		peer = nullptr;
-	} *
-
-	bool send(uint8_t channel, ENetPacket* data) { return enet_peer_send(peer, channel, data) == 0; }
-
-	bool send(uint8_t channel, std::string_view data) {
-		ENetPacket* p = enet_packet_create(data.data(), data.size(), 0);
-		if (!p) return false;
-		enet_peer_send(peer, channel, p);
-		return true;
-	}
-
-	ConnectionData& data() { return u_data; }
-
-	ENetPeer* raw() { return peer; }
-
-	bool operator<(const ENetConnection& with) { return peer < with.peer; }
-};
-
-/** @warning NEVER EVER TRY TO DESTROY ENETHOST FROM THE  EVENT HANDLER!
- * PLEASE set defer_destroy to true if you want to do that instead!
- * @warning NEVER try to reconnect/dsconnect or do any other stuff in a shutdown handler too!
- * @warning PLEASE DO NOT USE CALLBACKS FOR RESOURCE DEINITIALISATION! Use userdata object destructor for that!
- *
 class ENetBase {
  protected:
 	ENetHost* host = nullptr;

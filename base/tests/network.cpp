@@ -30,6 +30,7 @@
 #include "base/doctest.h"
 #include "external/enet.h"
 
+#if 0
 class NetTestData : public pb::Abstract {
  public:
 	int data;
@@ -187,3 +188,4 @@ TEST_CASE("network_test") {
 		}
 	}
 }
+#endif

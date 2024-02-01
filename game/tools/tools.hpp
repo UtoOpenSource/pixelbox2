@@ -20,6 +20,7 @@
 
 #pragma once
 #include "imgui.h"
+#include "base/string.hpp"
 #include "base/base.hpp"
 #include <functional>
 #include <map>

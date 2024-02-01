@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "base/string.hpp"
 #include <signal.h>
 /**
  * Raises TRAP syscall to notify debugger. 

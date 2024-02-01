@@ -19,6 +19,7 @@
 
 #pragma once
 #include "base.hpp"
+#include "base/string.hpp"
 #include "external/imgui.h"
 #include "galogen.h"
 #include <exception>

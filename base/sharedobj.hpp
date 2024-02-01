@@ -1,6 +1,6 @@
 /*
  * This file is a part of Pixelbox - Infinite 2D sandbox game
- * Shared Object
+ * Shared Object Base Class
  * Copyright (C) 2023-2024 UtoECat
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,9 +24,10 @@
 
 namespace pb {
 
-	class Shared : public std::enable_shared_from_this<Shared>, public Abstract {
-		std::shared_ptr<Shared> get_ptr() {
-			return shared_from_this();
+	template <class T>
+	class Shared : public std::enable_shared_from_this<Shared<T>> {
+		std::shared_ptr<Shared<T>> get_ptr() {
+			return std::enable_shared_from_this<Shared<T>>::shared_from_this();
 		}
 	};
 

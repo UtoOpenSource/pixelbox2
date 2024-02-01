@@ -19,6 +19,7 @@
 
 #pragma once
 #include "base/base.hpp"
+#include "base/string.hpp"
 #include "base/scopeguard.hpp"
 
 #include <map> // insertion speed and reference stablility matters here

@@ -33,116 +33,182 @@
  */
 namespace pb {
 
-	static void HostDefaultConfig(ENetHost* host) {
-		// TODO Adjust to better values!
-		host->maximumPacketSize = 1024 * 32;
-		host->maximumWaitingData = 1024 * 128;
+static void HostDefaultConfig(ENetHost* host) {
+	// TODO Adjust to better values!
+	host->maximumPacketSize = 1024 * 32;
+	host->maximumWaitingData = 1024 * 128;
+}
+
+void ENetConnection::disconnect_now() {
+	get_host()->disconnect_now(*this);
+}
+
+void ENetConnection::reset() {
+	get_host()->reset_peer(*this);
+}
+
+void ENetBase::default_init() {
+		if (host == nullptr) return;
+		host->userdata = this;	// feelsgoodman
 	}
 
-/*
-void ENetBase::on_event_recv(ENetEvent& ev) {
-	auto conn = ENetConnection(ev.peer);
+bool ENetBase::create_server() {
+	if (host) std::runtime_error("host is already exists!");
+	auto addr = info.getAddress();
+	host = enet_host_create(&addr, info.nconnections, info.nchannels, 0, 0);
+	default_init();
+	HostDefaultConfig(host);
+	return host != nullptr;
+}
+
+bool ENetBase::create_client() {
+	if (host) std::runtime_error("host is already exists!");
+	host = enet_host_create(NULL, info.nconnections, info.nchannels, 0, 0);
+	default_init();
+	HostDefaultConfig(host);
+	return host != nullptr;
+}
+
+void ENetBase::free_event(const ENetEvent& ev) {
 	switch (ev.type) {
 		case ENET_EVENT_TYPE_CONNECT:
-			enet_peer_set_data(ev.peer, new ConnectionData());
-			h_connect.notify_all(*this, conn);
+		case ENET_EVENT_TYPE_DISCONNECT:
+		case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:
+		break;
+		case ENET_EVENT_TYPE_RECEIVE:
+			enet_packet_destroy(ev.packet);	 // hehe
 			break;
+		case ENET_EVENT_TYPE_NONE:
+		break;
+	}
+}
+
+ENetConnection* ENetBase::handle_event(const ENetEvent& ev) {
+	ENetConnection* conn = static_cast<ENetConnection*>(ev.peer->data);
+
+	switch (ev.type) {
+		case ENET_EVENT_TYPE_CONNECT: {
+
+			try {
+				assert(ev.peer->data == nullptr);
+				conn = new ENetConnection(ev.peer);	 // init
+				ev.peer->data = conn;								 			// set
+				peers.emplace(conn);
+				if (!conn) throw std::runtime_error("OOM");
+			} catch (std::exception& e) {
+				enet_peer_reset(ev.peer);
+				return nullptr;
+			}
+
+			// add event handler
+			std::shared_ptr<ENetHandler> h;
+			try {
+				h = handler_maker();
+				if (!h) throw std::runtime_error("returned nullptr!");
+			} catch (std::exception& e) {
+				std::cerr << "Exception in handler_maker : " << e.what() << std::endl;
+				disconnect_now(*conn);
+				return nullptr;
+			}
+			peers_count++;
+			conn->set_handler(std::move(h));
+			break;
+		}
 		case ENET_EVENT_TYPE_DISCONNECT:
 		case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:
 			try {
-				h_disconnect.notify_all(*this, conn);
+				peers_count--;
+				(*conn)->net_disconnect(*conn, ev.type == ENET_EVENT_TYPE_DISCONNECT_TIMEOUT);
+				raw_peer_reset(*conn);	// done
 			} catch (std::exception& e) {
 				std::cerr << "Exception in disconnect handler : " << e.what() << std::endl;
-			} catch (...) {
-				std::cerr << "Unknown exception in disconnect handler" << std::endl;
-			}
-			{
-				auto v = (ConnectionData*)enet_peer_get_data(ev.peer);
-				if (v) delete v;
-				enet_peer_set_data(ev.peer, nullptr);
 			}
 			break;
 		case ENET_EVENT_TYPE_RECEIVE:
 			try {
-				h_recieve.notify_all(*this, conn, ev.channelID,
-														 std::string_view((const char*)enet_packet_get_data(ev.packet), enet_packet_get_length(ev.packet)));
+				(*conn)->net_recieve(*conn, ev.channelID,
+														std::string_view((const char*)enet_packet_get_data(ev.packet), enet_packet_get_length(ev.packet)));
 			} catch (std::exception& e) {
-				std::cerr << "Exception in message handler : " << e.what() << std::endl;
+				std::cerr << "Exception in recieve handler : " << e.what() << std::endl;
 			}
-			enet_packet_destroy(ev.packet);	 // hehe
+			// caller must call free_event()!!
 			break;
 		case ENET_EVENT_TYPE_NONE:
 			break;
 	}
+	return conn;
+}
+
+bool ENetBase::service_events(ENetEvent* ev, uint32_t timeout) {
+	assert(ev != nullptr);
+	assert(host != nullptr);
+	return (enet_host_service(host, ev, timeout) > 0);
 }
 
 void ENetBase::destroy() {
 	if (!host) return;
 
-	foreach ([](ENetPeer* peer) {
-		enet_peer_timeout(peer, 2000, 1000, 5000);
-		enet_peer_disconnect(peer, -1); // shutdown
+	foreach ([](ENetConnection& conn) {
+		enet_peer_timeout(conn.peer, 2000, 1000, 5000);
+		conn.disconnect();
 	});
 
 	flush();
-	int attempts = host->peerCount * 8;	 // process as much as *8 events
-	int dummies = host->peerCount;
 
 	ENetEvent ev;
-	while (dummies > 0 && attempts > 0 && enet_host_service(host, &ev, 5000)) {
+	while (peers_count && service_events(&ev, 5000)) {
 		switch (ev.type) {
 			case ENET_EVENT_TYPE_CONNECT:
 				enet_peer_reset(ev.peer);	 // ignore and kill
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
 			case ENET_EVENT_TYPE_DISCONNECT_TIMEOUT:
-				dummies--;
-				on_event_recv(ev);	// default behaviour
+				handle_event(ev);
 				break;
 			case ENET_EVENT_TYPE_RECEIVE:
-				enet_packet_destroy(ev.packet);	 // we don't care
-				break;
 			case ENET_EVENT_TYPE_NONE:
 				break;
 		}
+		free_event(ev);
 	}
 
-	force_destroy();	// shutdown now!
+	force_destroy();	// forcefully shutdown now!
 };
 
 bool ENetClient::connect(const char* ip, unsigned short port) {
 	info.ip = NULL;
 	info.port = port;
-	
-	create_client();
-	server = nullptr;
 
-	if (!host) {
-		std::cerr << "ENetClient: can't create client host! (weird)" << std::endl;
-		return false;	 // :(
+	if (!create_client()) return false;
+
+	try {
+		// connect
+		info.ip = ip;
+		const ENetAddress addr = info.getAddress();
+		info.nconnections = 1;
+
+		auto* srv = enet_host_connect(host, &addr, info.nchannels, 0);
+		if (!srv) {
+			throw "ENetClient : can't create peer!";
+		}
+
+		// process events
+		ENetEvent event;
+		while (service_events(&event, 5000) && event.type == ENET_EVENT_TYPE_CONNECT) {
+			handle_event(event); // do init
+			free_event(event);
+			return true; // success
+		}
+
+		throw "ENetClient : can't connect to the server!";
+
+	} catch (const char* data) {
+		std::cout << "Exception : " << data << std::endl;
+		force_destroy();
 	}
-
-	// connect
-	info.ip = ip;
-	const ENetAddress addr = info.getAddress();
-
-	server = enet_host_connect(host, &addr, info.nchannels, 0);
-	if (!server) {
-		std::cerr << "ENetClient : can't create peer!" << std::endl;
-		goto err;
-	}
-
-	// process events
-	ENetEvent event;
-	while (enet_host_service(host, &event, 5000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
-		on_event_recv(event);	 // do init
-		return true;
-	}
-
-	std::cerr << "ENetClient : can't connect to the server!" << std::endl;
-err:
-	force_destroy();
 	return false;
-} */
+}
+
+
 
 };	// namespace pb

@@ -31,15 +31,19 @@ namespace pb {
 	// predefinitions
 	// base
 	class Metadata;
+	
+	// base class for chunk/entity/player
+	class MetaClass;
+
 	// sertver-side only
 	class World;
 	class Player;	
 	class Chunk;
+	class Entity;
 	// client-side and in between on server
 	class ChunkCache;
 	// client only
 	class WorldCache;
-	//class Entity;
 
 	// core definitions
 	static constexpr int16_t CHUNK_WIDTH = 16;
@@ -48,20 +52,16 @@ namespace pb {
 	/** Minimal Pixel container. For rendering and clients.
 	Also used as storage for per-pixel metadata.
 	*/
-	struct Pixels {
+	struct Pixels : public Copyable {
 		uint8_t data[CHUNK_BYTES];	// pixel type
 		public:
-		Pixels(const Pixels&) = default;
-		Pixels(Pixels&&) = default;
-		Pixels& operator=(const Pixels&) = default;
-		Pixels& operator=(Pixels&&) = default;
 		const uint8_t& operator[](int i) const {return data[i];}
 		uint8_t& operator[](int i) {return data[i];}
 		constexpr size_t size() {return CHUNK_BYTES;}
 	};
 
 	// position of a chunk in the world
-	struct ChunkPos {
+	struct ChunkPos : public Copyable {
 		public:
 		union {
 			int16_t axis[2];
@@ -69,10 +69,6 @@ namespace pb {
 		} v;
 		public:
 		ChunkPos() {v.pack = 0;}
-		ChunkPos(const ChunkPos&) = default;
-		ChunkPos(ChunkPos&&) = default;
-		ChunkPos& operator=(const ChunkPos&) = default;
-		ChunkPos& operator=(ChunkPos&&) = default;
 		ChunkPos(int16_t x, int16_t y) {
 			v.axis[0] = x;
 			v.axis[1] = y;
@@ -83,15 +79,11 @@ namespace pb {
 	};
 
 	// update bounds inside chunk
-	struct Bounds {
+	struct Bounds : public Copyable {
 		int16_t x, y, x2, y2;
 		public:
 		Bounds(int16_t x, int16_t y, int16_t x2, int16_t y2)
 				: x(x), y(y), x2(x2), y2(y2) {}
-		Bounds(const Bounds&) = default;
-		Bounds(Bounds&&) = default;
-		Bounds& operator=(const Bounds&) = default;
-		Bounds& operator=(Bounds&&) = default;
 		public:
 		static constexpr int16_t max_val = CHUNK_WIDTH-1;
 		/** makes invalid order of points => no bounds set */

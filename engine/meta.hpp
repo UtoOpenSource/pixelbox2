@@ -18,10 +18,13 @@
  */
 
 #pragma once
+#include "base.hpp"
 #include "core.hpp"
 
 //implementation
 #include <external/robin_map.h>
+#include <cstddef>
+#include "base/string.hpp"
 
 namespace pb {
 
@@ -30,13 +33,23 @@ namespace pb {
 	// But will be serialized back into UUID/Chunk position when saved
 	// TODO FIXME NAN KEY STORAGING PROBLEM MUST BE FIXED!!!1
 	using MetaKey = std::variant<double, HString>;
-	using MetaValue = std::variant<double, HString, weak_ptr<Metadata>>;
+
+	// types of MetaValue
+	enum MetaTypes {
+		NIL,
+		NUM,
+		STR,
+		ARR,
+		OBJ
+	};
+
+	using MetaValue = std::variant<std::nullptr_t, double, HString, std::unique_ptr<Metadata>, weak_ptr<MetaClass>>;
 
 	// Associative array for metadata. see below.
 	using MetapropMap = tsl::robin_map<MetaKey, MetaValue>;
  
 	// Chunk Associative array
-	using ChunkRobinMap = tsl::robin_map<ChunkPos, shared_ptr<Chunk>>;
+	using ChunkMap = tsl::robin_map<ChunkPos, shared_ptr<Chunk>>;
 
 /*
  * Every Object that relates to the game itself : Chunk, Entyty,
@@ -50,10 +63,24 @@ namespace pb {
  * All mods are primary use ONLY metadata. 
  * We don't make this shared to prevent recursion
  */
-	class Metadata : public Shared {
+	class Metadata : public Moveable {
 		public:
 		MetapropMap map;
-
+		public:
+		MetaValue& operator[](const MetaKey& key) {
+			auto v = map.find(key);
+			if (v == map.end()) {
+				v = map.emplace_hint(v, nullptr);
+			}
+		}
 	};
+
+	/**
+	 * To make difference between Game-related Objects and just a metadata, every Game-related
+	 * must inherit from MetaClass, not Metadata!
+	 */
+	 class MetaClass : public Metadata, public Shared<MetaClass> {
+
+	 };
 
 };

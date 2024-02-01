@@ -21,6 +21,7 @@
 /*
  * Please use compiler with C++20 concepts and general C++20 support to compile pixelbox! 
  */
+
 #include <iterator>
 #include <stdexcept>
 #if !((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L || PB_NO_STDVER_CHECK)
@@ -40,137 +41,51 @@
 
 namespace pb {
 
-	// NOT atomic!
-	// You should use non-const comparison and get_hash() functions!
-	// they can save hash for later use...
-	// also hash is precalculated when constructed from std::string, const char* or other stuff!
-	// but NOT when using any modificational operators! so make sure to regenerate hash when all
-	// changes are finally done and you wish to use this string in comparing again
-	class HString : public std::string {
-		friend class std::hash<HString>;
-		private:
-		size_t hash = 0;
-		size_t regen_hash() const {
-			size_t seed = std::distance(begin(), end());
-			for(size_t x : *this) {
-				x = ((x >> 16) ^ x) * 0x45d9f3b;
-				x = ((x >> 16) ^ x) * 0x45d9f3b;
-				x = (x >> 16) ^ x;
-				seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			}
-			if (!seed) seed = 1;
-			return seed;
-		}
+	/** Useful OOP Base classes */
+
+	/** Static class : static position in memory after creation. Non-copyable, Non-movable */
+	class Static {
+		protected:
+		Static() = default;
 		public:
-		using std::string::string;
-		HString& operator=(const HString& src) {
-			static_cast<std::string&>(*this) = static_cast<const std::string&>(src);
-			hash = src.hash;
-			return *this;
-		}
-		HString& operator=(HString&& src) {
-			static_cast<std::string&>(*this) = static_cast<std::string&&>(src);
-			hash = src.hash;
-			src.hash = 0;
-			return *this;
-		}
-		HString(const char* src) : std::string(src) {
-			hash = regen_hash();
-		}
-		explicit HString(const std::string& src) : std::string(src) {
-			hash = regen_hash();
-		}
-		HString(const HString& src) : std::string(src) {
-			hash = src.hash;
-		}
-		HString(HString&& src) : std::string(src) {
-			hash = src.hash;
-			src.hash = 0;
-		}
-		inline size_t get_hash() const {
-			//if (!hash) throw "Not hashed HSTRING!";
-			if (!hash) return regen_hash();
-			return hash;
-		}
-		inline size_t get_hash() {
-			if (!hash) hash = regen_hash();
-			return hash;
-		}
-		void reset_hash() {
-			hash = 0;
-		}
-		bool operator==(HString& src) {
-			if (size() == src.size() && get_hash() == src.get_hash()) {
-				if (size() <= 8) return true; // let's try
-				return static_cast<std::string&>(*this) == static_cast<std::string&>(src);
-			}
-			return false;
-		}
-		bool operator!=(HString& src) {
-			return !(*this==src);
-		}
+		Static& operator=(const Static&) = delete;
+		Static& operator=(Static&&) = delete;
+		Static(const Static&) = delete;
+		Static(Static&&) = delete;
 	};
 
-	class Default {
+	/** Copyable & movable class */
+	class Copyable {
+		protected:
+		Copyable() = default;
 		public:
-		Default() = default;
-		Default(const Default&) = delete;
-		Default& operator=(const Default&) = delete;
+		Copyable(Copyable&&) = default;
+		Copyable& operator=(const Copyable&) = default;
+		Copyable& operator=(Copyable&&) = default;
+		Copyable(const Copyable&) = default;
 	};
 
-	// abstract base class... Yay :D
-	class Abstract : public Default {
-		public:
+	class Moveable {
+	 protected:
+		Moveable() = default;
+	 public:
+		Moveable(const Moveable&) = delete;
+		Moveable(Moveable&&) = default;
+		Moveable& operator=(const Moveable&) = delete;
+		Moveable& operator=(Moveable&&) = default;
+	};
+
+	/** @deprecated */
+	class Default : public Static {};
+
+	/** Abstract base class */
+	class Abstract {
+		public :
 		virtual ~Abstract() = 0;
 	};
 
-	/**
-	 * Widely used string formatting function. It returns data into the std::string by value, specified
-	 * at the first argument.
-	 */
-	template<typename ... Args>
-	bool format_v(std::string& result, const std::string& format, Args ... args ) {
-		result.clear();
-		int size_s = snprintf( nullptr, 0, format.c_str(), args... );
-		if( size_s < 0 ) return false; // error here?
+	using Virtual = Abstract;
 
-		auto size = static_cast<size_t>(size_s + 1); // Extra space for '\0'
-		result.resize(size);
-		auto vv = snprintf( &result[0], size, format.c_str(), args... );
-		return (vv > 0);
-	}
-
-	/**
-	 * Widely used string formatting function. It returns formatted std::string.
-	 * If you already have an instance of std::string with associated buffer, 
-	 * consider using pb::format_v() instead!
-	 */
-	template<typename ... Args>
-	std::string format_r(const std::string& format, Args... args ) {
-		std::string result;
-		if (format_v(result, format, args...)) {
-			return result;
-		}
-		throw std::runtime_error("bad format string!");
-	};
-
-	/**
-	 * Constant function to get a floating point number from string.
-	 * Locale-independent
-	 */
-	double strtod(const char *str, char **end);
-
-};
-
-// here is the hash function 
-template<>
-struct std::hash<pb::HString> {
-	std::size_t operator()(pb::HString& s) const noexcept {
-		return s.get_hash();
-	}
-	std::size_t operator()(const pb::HString& s) const noexcept {
-		return s.get_hash();
-	}
 };
 
 /*
