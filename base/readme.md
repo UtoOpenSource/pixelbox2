@@ -22,4 +22,4 @@ functions/libraries/systems all over the place :
 - locale-independent strtod()
 
 # todo
-- Locale and implementation-independent vsnprintf() :p
+- ~~Locale and implementation-independent vsnprintf() :p~~(done)

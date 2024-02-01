@@ -20,6 +20,7 @@
 #pragma once
 #include <string>
 #include <stdexcept>
+#include "external/printf.h"
 
 namespace pb {
 
@@ -101,12 +102,12 @@ namespace pb {
 	template<typename ... Args>
 	bool format_v(std::string& result, const std::string& format, Args ... args ) {
 		result.clear();
-		int size_s = snprintf( nullptr, 0, format.c_str(), args... );
+		int size_s = snprintf_( nullptr, 0, format.c_str(), args... );
 		if( size_s < 0 ) return false; // error here?
 
 		auto size = static_cast<size_t>(size_s + 1); // Extra space for '\0'
 		result.resize(size);
-		auto vv = snprintf( &result[0], size, format.c_str(), args... );
+		auto vv = snprintf_( &result[0], size, format.c_str(), args... );
 		return (vv > 0);
 	}
 

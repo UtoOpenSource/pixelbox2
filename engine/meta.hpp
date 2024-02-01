@@ -72,6 +72,7 @@ namespace pb {
 			if (v == map.end()) {
 				v = map.emplace_hint(v, nullptr);
 			}
+			return v.value();
 		}
 	};
 

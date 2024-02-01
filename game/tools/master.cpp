@@ -110,7 +110,7 @@ class Master : public Tool {
 		if (ImGui::BeginTabBar("master_tabs")) {
 
 			if (ImGui::BeginTabItem("About")) {
-				ImGui::TextWrapped("Pixelbox ver %s", VERSION_STR.c_str());
+				ImGui::TextWrapped("Pixelbox ver %s", VERSION_STR.data());
 				ImGui::TextWrapped("Infinite sandbox game. Prototyping stage");
 
 				if (ImGui::Button("Star me on GitHub!")) {
