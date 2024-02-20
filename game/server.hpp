@@ -21,14 +21,14 @@
 #include <memory>
 #include "engine/network.hpp"
 #include "base.hpp"
-#include "engine/database.hpp"
+#include "external/raiisqlite.hpp"
 
 namespace pb {
 
 	class GamerServerBase {
 		protected:
 		std::unique_ptr<ENetServer> server;
-		Database database;
+    sqlite::Database database;
 		public:
 		GamerServerBase(const char* db_file, int port, int max_cli = 1) {
 			// create server

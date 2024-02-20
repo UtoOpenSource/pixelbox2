@@ -6,8 +6,6 @@
  * modified a bit by utoecat. still public domain.
  */
 
-#include "base/base.hpp"
-#include <string.h>
 #include <math.h>
 #include <ctype.h>
 

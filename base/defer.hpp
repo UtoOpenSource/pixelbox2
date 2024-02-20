@@ -1,6 +1,6 @@
 /*
  * This file is a part of Pixelbox - Infinite 2D sandbox game
- * Evenst for objservers/subscribers patterns
+ * Guaranteed execution of destructor, for RAII
  * Copyright (C) 2023-2024 UtoECat
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,33 +18,35 @@
  */
 
 #pragma once
-#include <functional>
+#include <type_traits>
 #include <utility>
+#include "base/base.hpp"
 
 namespace pb {
 
-	// subject for "Observers"
-	// TODO : This thing is horrible...
-	template <typename F, typename... Args>
-	class Subject {
-		protected:
-		using function_type = std::function<F(Args...)>;
-		std::vector<function_type> handlers;
-		public:
-		Subject() {};
-		Subject(const Subject&) = default;
-		Subject(Subject&&) = default;
-		Subject& operator=(const Subject&) = default;
-		Subject& operator=(Subject&&) = default;
-		void subscribe(const function_type& f) { handlers.emplace_back(f); }
-		void subscribe(function_type&& f) { handlers.emplace_back(std::move(f)); }
-		void notify_all(Args&&... args) {
-			for (auto& f : handlers) {
-				f(std::forward<Args>(args)...);
-			}
-		}
-	};
+namespace impl {
+
+template <class F>
+class ScopeGuard : Moveable {
+  private:
+  F f;
+  bool invoke = true;
+  public:
+  explicit ScopeGuard(const F& ff) : f(ff) { }
+  explicit ScopeGuard(F&& ff) : f(std::move(ff)) { }
+  ~ScopeGuard() { if (invoke) f(); }
+  ScopeGuard(ScopeGuard&& other) noexcept : f(std::move(other.f)) {
+    other.invoke = false;
+  }
+  ScopeGuard(const ScopeGuard&&) = delete;
+};
 
 };
 
+// defer operator :D yay
+template <class F>
+[[nodiscard]] auto defer(F&& f) noexcept {
+    return impl::ScopeGuard<std::decay_t<F>>{std::forward<F>(f)};
+}
 
+};

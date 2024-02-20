@@ -18,18 +18,14 @@
  */
 
 #include "profiler.hpp"
-#include "base/base.hpp"
 #include "clock.hpp"
 
 #include "spinlock.hpp"
 #include "base/resource.hpp"
 
-#include <memory>
 #include <stdexcept>
 #include <thread>
-#include <mutex>
 
-#include <array>
 #include <stack>
 #include <utility>
 #include <stdexcept>
@@ -337,15 +333,6 @@ void ThreadData::begin(const HString& name) {
 }
 void ThreadData::end() {return data.end();}
 void ThreadData::step() {return data.step();}
-
-/** syntax sugar and safer wrapper of begin()/end() functions above
- * Calls begin() immediatly, and calls end when returned object is destructed
- */
-ScopeGuard<void()> ThreadData::make_zone(const HString& name) {
-	begin(name);
-	auto &master = *this;
-	return ScopeGuard<void()>([&master]{master.end();});
-}
 
 /**
  * API for retrieving profiling results

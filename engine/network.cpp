@@ -209,6 +209,60 @@ bool ENetClient::connect(const char* ip, unsigned short port) {
 	return false;
 }
 
+bool ENetClient::service(int timeout) {
+	ENetEvent event;
+
+	if (!get_server() && attempt_reconnect > 0 && attempt_reconnect < 10) {
+		force_destroy();
+		connect(info.ip, info.port);
+		attempt_reconnect++;
+		return true; // whatever
+	}
+
+	if (!host || !peers_count) return false;
+
+	if (service_events(&event, timeout)) {
+		handle_event(event); // do init
+
+		if (event.type == ENET_EVENT_TYPE_DISCONNECT || event.type == ENET_EVENT_TYPE_DISCONNECT_TIMEOUT) {
+			if (attempt_reconnect > 0 && attempt_reconnect < 10) {
+				free_event(event);
+				return true; // try again
+			}
+		}
+
+		free_event(event);
+	}
+	return true;
+}
+
+bool ENetServer::service(int timeout) {
+	ENetEvent event;
+
+	if (!host) return false;
+	if (!peers_count && !keep_working) return false;
+
+	if (service_events(&event, timeout)) {
+
+		if (prevent_connection && event.type == ENET_EVENT_TYPE_CONNECT) {
+			enet_peer_reset(event.peer);	 // ignore and kill
+			free_event(event);
+			return true;
+		}
+
+		handle_event(event); // do init
+		free_event(event);
+	}
+	return true;
+}
+
+bool ENetServer::create(const char* ip, unsigned short port) {
+	info.ip = ip;
+	info.port = port;
+
+	if (!create_server()) return false;
+	return true;
+}
 
 
 };	// namespace pb

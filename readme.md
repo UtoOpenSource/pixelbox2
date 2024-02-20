@@ -26,3 +26,10 @@ This new version **WILL** include features like :
 	- World Leveling Up: You need to sacrifize some amount of resources to improve your world
 	- Save information about laoded chunks when exiting the game. Load all them back when loading again, and only then start physic simulation (REQUIRES A LOT OF TESTING, VALUE-TWEAKING!)
 - Improve Out Of Memory stability
+
+# REpo structure
+repo strutures is :
+- `back_sdl` - default graphical backend to SDL + OpenGL 3 ES.
+- `external` - all external dependencies, used in any modules, not maintained by pixelbox team.
+- `engine` TODO merge base here - basic C++ delarations/classes/methods used everywhere.
+- `modules` - luau c++ modules, including require() and additional basic functions.

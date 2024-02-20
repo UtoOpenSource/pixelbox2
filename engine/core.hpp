@@ -19,11 +19,8 @@
 
 #pragma once
 #include <stdint.h>
-
 #include <base/base.hpp>
 #include <base/sharedobj.hpp>
-
-#include <variant>
 #include <algorithm>
 
 namespace pb {
@@ -49,8 +46,8 @@ namespace pb {
 	static constexpr int16_t CHUNK_WIDTH = 16;
 	static constexpr int16_t CHUNK_BYTES = CHUNK_WIDTH*CHUNK_WIDTH;
 
-	/** Minimal Pixel container. For rendering and clients.
-	Also used as storage for per-pixel metadata.
+	/** Minimal Pixel container.
+	  Also used as storage for per-pixel serverosideonly metadata.
 	*/
 	struct Pixels : public Copyable {
 		uint8_t data[CHUNK_BYTES];	// pixel type

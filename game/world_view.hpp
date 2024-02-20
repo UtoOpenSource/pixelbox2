@@ -17,12 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
- #pragma once
+#pragma once
+#include "base.hpp"
 
- #include "base.hpp"
 namespace pb {
 
-	class WorldViewer : public Default {
+	class WorldViewer : public Moveable {
 		public:
 		WorldViewer();
 		~WorldViewer();

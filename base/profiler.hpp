@@ -20,7 +20,7 @@
 #pragma once
 #include "base/base.hpp"
 #include "base/string.hpp"
-#include "base/scopeguard.hpp"
+#include "base/defer.hpp"
 
 #include <map> // insertion speed and reference stablility matters here
 #include <thread> // for ThreadID
@@ -86,12 +86,16 @@ class ThreadData {
 	 * done.~~ This requirement is removed in current version : you can safely
 	 * tick in the middle of deep zone stack :)
 	 */
-	 void step();
+	void step();
 
-	 /** syntax sugar and safer wrapper of begin()/end() functions above
+	/** syntax sugar and safer wrapper of begin()/end() functions above
 	   * Calls begin() immediatly, and calls end when returned object is destructed
 		 */
-	 pb::ScopeGuard<void()> make_zone(const HString& name);
+  auto make_zone(const HString& name) {
+    begin(name);
+	  auto &master = *this;
+	  return pb::defer([&master]{master.end();});
+  }
 };
 
 /**
@@ -108,9 +112,9 @@ void       free_thread_data(ThreadData);
 ThreadData get_thread_data();
 
 /** convinient wrapper around initialization things above */
-inline pb::ScopeGuard<void()> make_thread_data() {
+inline auto make_thread_data() {
 	ThreadData data = init_thread_data();
-	return pb::ScopeGuard<void()> ([data]() {
+	return pb::defer([data]() {
 		free_thread_data(data);
 	});
 }

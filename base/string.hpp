@@ -20,6 +20,7 @@
 #pragma once
 #include <string>
 #include <stdexcept>
+#include <string_view>
 #include "external/printf.h"
 
 namespace pb {
@@ -108,6 +109,7 @@ namespace pb {
 		auto size = static_cast<size_t>(size_s + 1); // Extra space for '\0'
 		result.resize(size);
 		auto vv = snprintf_( &result[0], size, format.c_str(), args... );
+		result.pop_back(); // remove '\0!'
 		return (vv > 0);
 	}
 
@@ -130,6 +132,10 @@ namespace pb {
 	 * Locale-independent
 	 */
 	double strtod(const char *str, char **end);
+
+
+	using String = std::string;
+	using StringView = std::string_view;
 
 };
 

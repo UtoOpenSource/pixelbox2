@@ -1,164 +1,206 @@
 [
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/base.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/base.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/base/base.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/base.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/base.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/base.cpp",
   "output": "CMakeFiles/libBase.dir/base/base.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/clock.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/clock.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/base/clock.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/clock.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/clock.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/clock.cpp",
   "output": "CMakeFiles/libBase.dir/base/clock.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/doctest.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/doctest.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/base/doctest.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/doctest.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/doctest.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/doctest.cpp",
   "output": "CMakeFiles/libBase.dir/base/doctest.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/profiler.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/profiler.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/base/profiler.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/profiler.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/profiler.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/profiler.cpp",
   "output": "CMakeFiles/libBase.dir/base/profiler.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/random.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/random.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/base/random.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/random.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/random.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/random.cpp",
   "output": "CMakeFiles/libBase.dir/base/random.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/tests/profiler.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/base/tests/profiler.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/base/tests/profiler.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/strtod.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/strtod.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/strtod.cpp",
+  "output": "CMakeFiles/libBase.dir/base/strtod.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/tests/network.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/tests/network.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/tests/network.cpp",
+  "output": "CMakeFiles/libBase.dir/base/tests/network.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBase.dir/base/tests/profiler.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/tests/profiler.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base/tests/profiler.cpp",
   "output": "CMakeFiles/libBase.dir/base/tests/profiler.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/cc -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/enet.c.o -c /home/utoecat/PIXELBOX_PROJECT/external/enet.c",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/enet.c",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/cc  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/enet.c.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/enet.c",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/enet.c",
   "output": "CMakeFiles/libExternal.dir/external/enet.c.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/cc -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/galogen.c.o -c /home/utoecat/PIXELBOX_PROJECT/external/galogen.c",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/galogen.c",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/cc  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/galogen.c.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/galogen.c",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/galogen.c",
   "output": "CMakeFiles/libExternal.dir/external/galogen.c.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/external/imgui.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/imgui.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui.cpp",
   "output": "CMakeFiles/libExternal.dir/external/imgui.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_demo.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/external/imgui_demo.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/imgui_demo.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_demo.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_demo.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_demo.cpp",
   "output": "CMakeFiles/libExternal.dir/external/imgui_demo.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_draw.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/external/imgui_draw.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/imgui_draw.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_draw.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_draw.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_draw.cpp",
   "output": "CMakeFiles/libExternal.dir/external/imgui_draw.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_tables.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/external/imgui_tables.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/imgui_tables.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_tables.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_tables.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_tables.cpp",
   "output": "CMakeFiles/libExternal.dir/external/imgui_tables.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_widgets.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/external/imgui_widgets.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/imgui_widgets.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/imgui_widgets.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_widgets.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/imgui_widgets.cpp",
   "output": "CMakeFiles/libExternal.dir/external/imgui_widgets.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/cc -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -g   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/sqlite3.c.o -c /home/utoecat/PIXELBOX_PROJECT/external/sqlite3.c",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/external/sqlite3.c",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/luau.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/luau.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/luau.cpp",
+  "output": "CMakeFiles/libExternal.dir/external/luau.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/cc  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/printf.c.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/printf.c",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/printf.c",
+  "output": "CMakeFiles/libExternal.dir/external/printf.c.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/printf_impl.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/printf_impl.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/printf_impl.cpp",
+  "output": "CMakeFiles/libExternal.dir/external/printf_impl.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/raiisqlite.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/raiisqlite.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/raiisqlite.cpp",
+  "output": "CMakeFiles/libExternal.dir/external/raiisqlite.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/cc  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -g   -Wall -Wextra -o CMakeFiles/libExternal.dir/external/sqlite3.c.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/sqlite3.c",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external/sqlite3.c",
   "output": "CMakeFiles/libExternal.dir/external/sqlite3.c.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libEngine.dir/engine/database.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/engine/database.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/engine/database.cpp",
-  "output": "CMakeFiles/libEngine.dir/engine/database.cpp.o"
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libEngine.dir/engine/meta.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/engine/meta.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/engine/meta.cpp",
+  "output": "CMakeFiles/libEngine.dir/engine/meta.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libEngine.dir/engine/vfs.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/engine/vfs.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/engine/vfs.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libEngine.dir/engine/network.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/engine/network.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/engine/network.cpp",
+  "output": "CMakeFiles/libEngine.dir/engine/network.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libEngine.dir/engine/vfs.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/engine/vfs.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/engine/vfs.cpp",
   "output": "CMakeFiles/libEngine.dir/engine/vfs.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBackend.dir/back_sdl/graphics.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/back_sdl/graphics.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/back_sdl/graphics.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBackend.dir/back_sdl/graphics.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/back_sdl/graphics.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/back_sdl/graphics.cpp",
   "output": "CMakeFiles/libBackend.dir/back_sdl/graphics.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBackend.dir/back_sdl/imgui_impl_opengl3.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/back_sdl/imgui_impl_opengl3.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/back_sdl/imgui_impl_opengl3.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBackend.dir/back_sdl/imgui_impl_opengl3.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/back_sdl/imgui_impl_opengl3.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/back_sdl/imgui_impl_opengl3.cpp",
   "output": "CMakeFiles/libBackend.dir/back_sdl/imgui_impl_opengl3.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBackend.dir/back_sdl/imgui_impl_sdl2.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/back_sdl/imgui_impl_sdl2.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/back_sdl/imgui_impl_sdl2.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBackend.dir/back_sdl/imgui_impl_sdl2.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/back_sdl/imgui_impl_sdl2.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/back_sdl/imgui_impl_sdl2.cpp",
   "output": "CMakeFiles/libBackend.dir/back_sdl/imgui_impl_sdl2.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libBackend.dir/back_sdl/noop.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/back_sdl/noop.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/back_sdl/noop.cpp",
-  "output": "CMakeFiles/libBackend.dir/back_sdl/noop.cpp.o"
-},
-{
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/main.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/main.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/game/main.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/main.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/main.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/main.cpp",
   "output": "CMakeFiles/libGame.dir/game/main.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/main_client.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/main_client.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/game/main_client.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/main_client.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/main_client.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/main_client.cpp",
   "output": "CMakeFiles/libGame.dir/game/main_client.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/main_server.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/main_server.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/game/main_server.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/main_server.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/main_server.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/main_server.cpp",
   "output": "CMakeFiles/libGame.dir/game/main_server.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/noop.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/noop.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/game/noop.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/noop.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/noop.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/noop.cpp",
   "output": "CMakeFiles/libGame.dir/game/noop.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/tools/imgui_wrap.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/tools/imgui_wrap.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/game/tools/imgui_wrap.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/tools/imgui_wrap.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/tools/imgui_wrap.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/tools/imgui_wrap.cpp",
   "output": "CMakeFiles/libGame.dir/game/tools/imgui_wrap.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/tools/master.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/tools/master.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/game/tools/master.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/tools/master.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/tools/master.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/tools/master.cpp",
   "output": "CMakeFiles/libGame.dir/game/tools/master.cpp.o"
 },
 {
-  "directory": "/home/utoecat/PIXELBOX_PROJECT/build",
-  "command": "/usr/bin/c++ -I/home/utoecat/PIXELBOX_PROJECT -I/home/utoecat/PIXELBOX_PROJECT/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/base -I/home/utoecat/PIXELBOX_PROJECT/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/tools/profiler.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/game/tools/profiler.cpp",
-  "file": "/home/utoecat/PIXELBOX_PROJECT/game/tools/profiler.cpp",
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/tools/profiler.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/tools/profiler.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/tools/profiler.cpp",
   "output": "CMakeFiles/libGame.dir/game/tools/profiler.cpp.o"
+},
+{
+  "directory": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/build",
+  "command": "/usr/bin/c++  -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/libSDL -I/usr/include/SDL2 -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/base -I/home/utoecat/PIXELBOX_PROJECT/CPP_VER/external -g -std=gnu++20   -Wall -Wextra -o CMakeFiles/libGame.dir/game/world_view.cpp.o -c /home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/world_view.cpp",
+  "file": "/home/utoecat/PIXELBOX_PROJECT/CPP_VER/game/world_view.cpp",
+  "output": "CMakeFiles/libGame.dir/game/world_view.cpp.o"
 }
 ]

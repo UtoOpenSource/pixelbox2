@@ -22,8 +22,6 @@
  * Please use compiler with C++20 concepts and general C++20 support to compile pixelbox! 
  */
 
-#include <iterator>
-#include <stdexcept>
 #if !((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L || PB_NO_STDVER_CHECK)
 #error C++17 support is required!
 #endif
@@ -37,7 +35,6 @@
 
 #include <stdint.h>
 #include <limits.h>
-#include <string>
 
 namespace pb {
 
@@ -76,7 +73,6 @@ namespace pb {
 	};
 
 	/** @deprecated */
-	class Default : public Static {};
 
 	/** Abstract base class */
 	class Abstract {

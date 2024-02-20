@@ -28,7 +28,95 @@
 
 #include "base/base.hpp"
 #include "base/doctest.h"
+#include "base/string.hpp"
 #include "external/enet.h"
+
+namespace pb {
+
+class NetTestCli : public ENetHandler {
+	public:
+	public:
+	int i = 0;
+	virtual void net_connect(ENetConnection& con) {
+		con.send(1, std::string_view("gimme your name"));
+	}
+	virtual void net_switch_out(ENetConnection& con) {
+
+	}
+	virtual void net_recieve(ENetConnection& con, uint8_t channel, std::string_view data) {
+		std::cerr << "client recieved : " << data << std::endl;
+		con.send(1, std::string_view("abobus"));
+		if (i++) con.disconnect_later();
+	}
+	virtual void net_update(ENetConnection& con) {
+
+	}
+	virtual void net_disconnect(ENetConnection& con, bool is_timeout) {
+
+	}
+};
+
+class NetTestSrv : public ENetHandler {
+	public:
+	public:
+	virtual void net_connect(ENetConnection& con) {
+
+	}
+	virtual void net_switch_out(ENetConnection& con) {
+
+	}
+	virtual void net_recieve(ENetConnection& con, uint8_t channel, std::string_view data) {
+		std::string v = format_r("amogus %i", rand());
+		con.send(1, std::string_view(v));
+	}
+	virtual void net_update(ENetConnection& con) {
+
+	}
+	virtual void net_disconnect(ENetConnection& con, bool is_timeout) {
+		std::cerr << "server : client disconnected!" << std::endl;
+	}
+};
+
+	TEST_CASE("network_test") {
+
+		ENetServer server([]() {
+			return std::make_shared<NetTestSrv>();
+		});
+
+		std::vector<std::thread> threads;
+
+		ProtocolInfo info;
+		info.nconnections = 10;
+
+		server.set_address(info);
+		server.create("127.0.0.1");
+
+		for (int i = 0; i < 4; i++) threads.push_back(std::thread([](){			
+			ENetClient client([](){
+				return std::make_shared<NetTestCli>();
+			});
+
+			client.connect("127.0.0.1");
+
+			while (client.service(5000)) {};
+
+			client.disconnect();
+
+		}));
+
+		while (server.service(5000)) {
+			server.keep_working = false; // stop when no connections left
+		}
+
+		server.destroy();
+
+		for (auto &th : threads) {
+			th.join();
+		}
+
+	}
+
+};
 
 #if 0
 class NetTestData : public pb::Abstract {
