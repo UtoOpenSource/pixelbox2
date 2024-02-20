@@ -39,10 +39,10 @@ namespace pb {
 	};
 
 namespace impl {
-	
+	using Mmap = tsl::robin_map<MetaKey, MetaValue, std::hash<MetaKey>, std::equal_to<MetaKey>, std::allocator<std::pair<MetaKey, MetaValue>>, false>;
   // Value for associative metadata map (see below)
-  struct MetaMap : public tsl::robin_map<MetaKey, MetaValue>{
-    using Base = tsl::robin_map<MetaKey, MetaValue>;
+  struct MetaMap : public Mmap {
+    using Base = Mmap;
     using Base::Base;
 
     // assumes key is validated already. May return NULLPTR
@@ -483,7 +483,7 @@ bool Metadata::deserialize(std::istream& src) {
 }
 
 // hard one... :skull:
-void Metadata::serialize(std::ostream& dst) {
+void Metadata::serialize(std::ostream& dst, bool exclude_defaults) {
   dst << '{';
   
   if (!map) {
@@ -496,12 +496,10 @@ void Metadata::serialize(std::ostream& dst) {
     dst.flags(f);
   });
   
-  std::string tmp;
-
   for (auto i = map->begin(); i != map->end();) {
     
     const MetaValue& v = i->second;
-    if (v.index() == 0 && std::get<0>(v) == 0.0) { // skip to save disk space 
+    if (exclude_defaults && v.index() == 0 && std::get<0>(v) == 0.0) { // skip to save disk space 
       i++;
       continue; 
     }
@@ -511,8 +509,7 @@ void Metadata::serialize(std::ostream& dst) {
     dst << ':';
 
     if (v.index() == 0) { // number
-      format_v(tmp, "%f", std::get<0>(v));
-      dst << tmp;
+      dst << impl::num2str(std::get<0>(v));
     } else {
       impl::jsonify_string(dst, impl::to_str(v)); 
     }

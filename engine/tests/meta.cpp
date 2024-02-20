@@ -106,13 +106,13 @@ static void fin(pb::Metadata &a, pb::Metadata &b) {
   a.serialize(strm);
 
   std::string old = strm.str();
-  std::cout << "res : " << old << std::endl;
+  //std::cout << "res : " << old << std::endl;
   REQUIRE(b.deserialize(strm) == true);
 
   strm.str(std::string()); strm.clear();
   b.serialize(strm);
   std::string curr = strm.str();
-  std::cout << "r2  : " << curr << std::endl;
+  //std::cout << "r2  : " << curr << std::endl;
 
   REQUIRE(old == curr);
 
@@ -132,6 +132,5 @@ TEST_CASE("metadata serialization") {
     v[0] = i;
     a.set(i - 'a', v);
   }
-  //BRK();
   fin(a, b);
 }

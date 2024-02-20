@@ -22,12 +22,10 @@
 #include <string.h>
 
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <set>
 #include <stdexcept>
 #include <string_view>
-#include <typeinfo>
 
 #include "base/base.hpp"
 #include "base/sharedobj.hpp"
@@ -384,13 +382,3 @@ class ENetServer : public ENetBase {
 };
 
 };	// namespace pb
-
-#if 0
-/**
- * @description ENet Wrapper
- */
-namespace pb_old {
-
-
-};	// namespace pb_old
-#endif

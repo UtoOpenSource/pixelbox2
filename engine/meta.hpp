@@ -123,7 +123,11 @@ namespace pb {
     bool next(MetaKey& key);
 
     public: // extra
-    void serialize(std::ostream&); // save map content into stringstream (JSON-LIKE)
+    /** save map content into stringstream (JSON-LIKE)
+     * exclude_defaults should be set when saving to disk to save space.
+     * but when sending over a net - must be setted to false!
+     */
+    void serialize(std::ostream&, bool exclude_defaults=true); 
     bool deserialize(std::istream&); // load map content from stringstream (JSON-LIKE)
 	};
 
