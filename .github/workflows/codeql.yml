@@ -64,6 +64,7 @@ jobs:
 
     - run: |
          echo "Run, Build Application using script"
+         sudo apt-get update
          sudo apt-get install libsdl2-dev
          ./buildscript.sh
 
