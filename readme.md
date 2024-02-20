@@ -17,7 +17,7 @@ This new version **WILL** include features like :
      
 **In the far future** theese fratures are planned :
 - Entity system
-- Serve and clientr-side modifications (using luau)
+- Server and client-side modifications (using luau)
 - Server-side assets (textures, sounds, scripts, mods)
 - Particles sounds
 - Better UI, Background music
@@ -31,5 +31,6 @@ This new version **WILL** include features like :
 repo strutures is :
 - `back_sdl` - default graphical backend to SDL + OpenGL 3 ES.
 - `external` - all external dependencies, used in any modules, not maintained by pixelbox team.
-- `engine` TODO merge base here - basic C++ delarations/classes/methods used everywhere.
-- `modules` - luau c++ modules, including require() and additional basic functions.
+- `engine` - core game systems
+- `base`  - basic C++ delarations/classes/methods used everywhere.
+- `game` - TODO rename to client 
