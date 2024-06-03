@@ -1,0 +1,8 @@
+/legacy
+*.o
+/assets
+/bin
+/cmake
+/.cache
+/build
+/legacy
