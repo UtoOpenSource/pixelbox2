@@ -24,16 +24,14 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "galogen.h"
+#include "screen.hpp"
 
 namespace pb {
 
+static class SDLRAII : public BackendRAII {
+	public:
 	int window_width = 680;
 	int window_height = 480;
-
-namespace backend {
-
-class SDLRAII {
-	public:
 	bool ok;
 	SDL_GLContext gl_context;
 	SDL_Window* window;
@@ -42,7 +40,11 @@ class SDLRAII {
 	virtual void clear();
 	virtual void flush();
 	virtual bool tick();
-};
+} graphocs_impl;
+
+class BackendRAII *graphics = &graphocs_impl;
+
+BackendRAII::~BackendRAII() {}
 
 SDLRAII::SDLRAII() {
 	// Setup Dear ImGui context
@@ -64,7 +66,7 @@ SDLRAII::SDLRAII() {
 
 	window = SDL_CreateWindow(
 		"SDL2 Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		680, 480, window_flags);
+		window_width, window_height, window_flags);
 	SDL_SetWindowMinimumSize(window, 200, 200);
 
 	if (!window) {
@@ -82,7 +84,7 @@ SDLRAII::SDLRAII() {
 	}
 	SDL_GL_MakeCurrent(window, gl_context);
 	SDL_GL_SetSwapInterval(1);
-	glViewport(0, 0, 200, 200);
+	glViewport(0, 0, window_width, window_height);
 	
 	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 	ImGui_ImplOpenGL3_Init();
@@ -123,30 +125,21 @@ bool SDLRAII::tick() {
 }
 
 void SDLRAII::clear() {
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplSDL2_NewFrame();
-	ImGui::NewFrame();
+		// begin IMGUI
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
+
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void SDLRAII::flush() {
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		// DRAW it
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	SDL_GL_SwapWindow(window);
 }
 
 };
-
-};
-
-#include "imgui.h"
-
-int main() {
-	pb::backend::SDLRAII w;
-	while (w.tick()) {
-		w.clear();
-		ImGui::ShowDemoWindow();
-		w.flush();
-	}
-}
