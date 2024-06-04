@@ -30,7 +30,7 @@ extern "C" {
 #define GALOGEN_API_NAME "gl"
 #define GALOGEN_API_PROFILE "core"
 #define GALOGEN_API_VER_MAJ 3
-#define GALOGEN_API_VER_MIN 2
+#define GALOGEN_API_VER_MIN 3
 typedef unsigned int  GLenum;
 typedef unsigned int  GLuint;
 typedef int  GLsizei;

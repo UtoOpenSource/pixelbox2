@@ -25,6 +25,7 @@
 #include "imgui_impl_opengl3.h"
 #include "galogen.h"
 #include "screen.hpp"
+#include "profiler.hpp"
 
 namespace pb {
 
@@ -60,7 +61,8 @@ SDLRAII::SDLRAII() {
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 0 );
+  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
 	int window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 
@@ -89,6 +91,11 @@ SDLRAII::SDLRAII() {
 	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 	ImGui_ImplOpenGL3_Init();
 	ok = true;
+
+	// clear stuff
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	SDL_GL_SwapWindow(window); 
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 SDLRAII::~SDLRAII() {
@@ -125,21 +132,25 @@ bool SDLRAII::tick() {
 }
 
 void SDLRAII::clear() {
+		SDL_GL_SwapWindow(window);
+
 		// begin IMGUI
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void SDLRAII::flush() {
 
+	{
+		PROFILING_SCOPE("IMGUI_SDL_FLUSH");
 		// DRAW it
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	}
 
-	SDL_GL_SwapWindow(window);
 }
 
 };

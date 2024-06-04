@@ -149,53 +149,15 @@ DatabaseError Statement::iterate() noexcept {
 	return rc; // error or done
 }
 
-DatabaseError Backup::start(sqlite3 *src, sqlite3 *dest, int delay, const char* schema_name) {
+DatabaseError Backup::start(sqlite3 *src, sqlite3 *dest, const char* schema_name) {
 		if (!src || !dest) throw std::runtime_error("database is nullptr!");
 		if (!schema_name) schema_name = "main";
 		ctx = sqlite3_backup_init(dest, schema_name, src, schema_name);
 		if (!ctx) {
 			return DatabaseError(sqlite3_errcode(dest));
 		}
-		sleep_amount = delay > 0 ? delay : 0;
-		return DatabaseError(); // OK
+		return DatabaseError(SQLITE_OK); // OK
 }
-
-DatabaseError Backup::execute_until_busy(int n_pages) {
-	DatabaseError err;
-	do {
-		err = iterate(n_pages);
-		sleep();
-	} while (err == SQLITE_OK);
-
-	if (err != SQLITE_DONE && err != SQLITE_BUSY && err != SQLITE_LOCKED) {
-		err.raise();
-	}
-	return err;
-}
-
-void Backup::execute_sync(int n_pages) {
-	DatabaseError err;
-
-	do {
-		err = execute_until_busy(n_pages);
-	} while (err == SQLITE_OK || err == SQLITE_BUSY);
-
-	if (err != SQLITE_DONE) err.raise();
-}
-
-void Backup::execute_now() {
-	struct anon {
-		Backup* me;
-		int old;
-		anon(Backup* a, int b) : me(a), old(b) {} 
-		~anon() {
-			me->sleep_amount = old;
-		}
-	} _(this, sleep_amount);
-
-	sleep_amount = 0; // no delays 
-	execute_sync(100); // let's go
-};
 
 DatabaseError Backup::iterate(int n_pages) noexcept {
 	if (!ctx) return SQLITE_EMPTY;	// error?
@@ -207,7 +169,7 @@ DatabaseError Backup::iterate(int n_pages) noexcept {
 	}
 
 	// not recoverable OR done
-	destroy();
+	// THERE WAS CALL TO destroy() AND THAT WAS A MISTAKE! ITERATION FUNCTION MUST NOT CLOSE HANDLE!
 	return err;
 }
 

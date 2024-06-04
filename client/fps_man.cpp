@@ -180,7 +180,7 @@ namespace screen {
 };
 
 
-#include "engine/clock.hpp"
+#include "clock.hpp"
 void pb::screen::fps_info_man::collect() {
 	story.add(pb::__clocksource.time());
 }

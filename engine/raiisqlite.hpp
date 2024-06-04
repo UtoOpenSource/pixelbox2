@@ -67,9 +67,6 @@ class Database;
 /** Optional error, returned by most of the functions. */
 //class DatabaseError;
 
-/** Generic exception, related to raiisqlite module */
-class DatabaseException;
-
 /** 
  * @brief Step-by-step database backup routine
  * @warning both databases, passed in constructor, must exists and not change
@@ -170,8 +167,8 @@ class DbError<true> : public DbError<false> {
 	operator int() = delete;
 
 	// convinient operators
-	inline bool operator==(int sqlerr) {is_checked = 1;return errcode == sqlerr;}
-	inline bool operator!=(int sqlerr) {return !(*this == sqlerr);}
+	[[nodiscard]] inline bool operator==(int sqlerr) {is_checked = 1;return errcode == sqlerr;}
+	[[nodiscard]] inline bool operator!=(int sqlerr) {return !(*this == sqlerr);}
 
 	inline ~DbError() {
 			if (is_error() && !is_checked) fprintf(stderr, "unhandled Database Error : %s, %i\n", sqlite3_errstr(errcode), errcode);
@@ -278,6 +275,9 @@ class QueryResult {
 	/** return length of the string or blob at this index */
 	size_t length(int index) { return sqlite3_column_bytes(stmt, index); }
 
+	/** get column name */
+	const char* name(int index) { return sqlite3_column_name(stmt, index); }
+
 	/** recieve data at specified index as specified type. Sqlite may do some convertions
 	 * under the hood! */
 	template <typename T>
@@ -325,12 +325,12 @@ class Statement {
 	 * you may get compilation error using get_compile_error() method, HOWEVER, it has some limitations.
 	 * see @ref get_compile_error() docs for more info.
 	 */
-	DatabaseError compile(sqlite3 *db, Text& src, int flags = 0) noexcept;
+	[[nodiscard]] DatabaseError compile(sqlite3 *db, Text& src, int flags = 0) noexcept;
 
 	/** Executes statement.
 	 * returns SQLITE_DONE => execution is complete successfully, SQLITE_ROW => we have result data to process, any other value => error.
 	 */
-	DatabaseError iterate() noexcept;
+	[[nodiscard]] DatabaseError iterate() noexcept;
 
 	/** get results from statetment.
 	 * You can only call this when iterate() returns SQLITE_ROW!
@@ -343,7 +343,7 @@ class Statement {
 	 * you may call iterate() again after that :)
 	 * but you shouldn't call this AFTER iterate()!
 	 * internally iterate always resets statement when it
-	 * finishes ar returns ERROR! 
+	 * finishes or returns an ERROR! 
 	 */
 	inline void reset() noexcept {if (stmt) sqlite3_reset(stmt);}
 
@@ -351,8 +351,8 @@ class Statement {
 	 * pass callback to retrieve all row results
 	 * return non-zero to abort
 	 */
-	DatabaseError execute(auto& cb = nullptr) noexcept {
-		if (!stmt) return SQLITE_EMPTY;
+	[[nodiscard]] DatabaseError execute(auto& cb = nullptr) noexcept {
+		if (!stmt) return SQLITE_MISUSE;
 		DatabaseError rc;
 			while ((rc = iterate()) == SQLITE_ROW) {
 				 // execute callback
@@ -360,16 +360,16 @@ class Statement {
 					reset();
 					rc = SQLITE_ABORT;	// callback aborted
 					break;
-				}	
+				}
 			}
-		return rc; // should be moved... and not trigger unchecked error...
+		return rc; // busy is not handled, because we don't have database BLOCKED in pixelbox, it's opened exclusively
 	}
 
 	/**
 	 * fast path, without callback and any exceptions
 	 */
-	DatabaseError execute() noexcept {
-		if (!stmt) return SQLITE_EMPTY;
+	[[nodiscard]] DatabaseError execute() noexcept {
+		if (!stmt) return SQLITE_MISUSE;
 		DatabaseError rc;
 		while ((rc = iterate()) == SQLITE_ROW) {}
 		return rc;
@@ -398,7 +398,9 @@ class Statement {
 	/** unbind all parameters */
 	void unbind() {sqlite3_clear_bindings(stmt);}
 
-	/** DO NOT CONFUSE WITH ERROR SQLITE_BUSY! THis one means that statement was started to be executed, but was not finished! */
+	/** DO NOT CONFUSE WITH ERROR SQLITE_BUSY! THis one means that statement was started to be executed, but was not finished!
+	 * you should continue doing iterate() or reset() it!
+	 */
 	bool is_busy() {return sqlite3_stmt_busy(stmt);}
 
 	/** for debugging purposes. */
@@ -426,7 +428,6 @@ class Backup {
  friend class Testing;
  protected:
 	sqlite3_backup *ctx = nullptr;
-	int sleep_amount = 100;
  public:
 	Backup(const Backup &) = delete;
 	Backup(Backup &&) = default;
@@ -439,7 +440,7 @@ class Backup {
 	inline Backup(sqlite3 *src, sqlite3 *dest, Args&&... args) {
 		if (!src || !dest) throw std::runtime_error("database is nullptr!");
 		if (!start(src, dest, std::forward<Args>(args)...).check()) {
-			throw std::runtime_error(sqlite3_errmsg(dest));
+			throw std::runtime_error(sqlite3_errmsg(dest)); // it has more complete error message
 		}
 	}
 
@@ -455,22 +456,26 @@ class Backup {
 	 * execute() routines! 
 	 * this may be important in cases you know that 
 	 * databases will never be locked/busy, or busy for long
+	 *
+	 * i don't know why i did all this shit.. but anyway
 	 */
-	DatabaseError start(sqlite3 *src, sqlite3 *dest, int delay=25, const char* schema_name = "main");
+	[[nodiscard]] DatabaseError start(sqlite3 *src, sqlite3 *dest, const char* schema_name = "main");
 
 	int remaining() const noexcept { return ctx ? sqlite3_backup_remaining(ctx) : 0; }
 	int length() const noexcept { return ctx? sqlite3_backup_pagecount(ctx) : 0; }
 	int position() const noexcept { return length() - remaining(); }
 
 	// wait to allow db to work a bit in background.
-	void sleep() noexcept {
-		if (sleep_amount > 0)
+	// does not called by any functions. It is for you to optionally call it.
+	static void sleep(int sleep_amount) noexcept {
 		sqlite3_sleep(sleep_amount);
 	}
 
-	/** may return error */
+	/** may return error 
+	 * you can discard it. kinda
+	 */
 	DatabaseError destroy() {
-		if (!ctx) return SQLITE_EMPTY;
+		if (!ctx) return SQLITE_MISUSE;
 
 		/* Release resources allocated by backup_init(). */
 		int err = sqlite3_backup_finish(ctx);
@@ -480,40 +485,20 @@ class Backup {
 
 	/** iterator. returns SQLITE_*** codes.
 	 * you should explicitly handle SQLITE_BUSY and SQLITE_LOCKED errors
-	 * SQLITE_DONE and SQLITE_OK notifies about SUCCESS!
+	 * Errors like SQLITE_NOMEM, SQLITE_READONLY, SQLITE_IO_* ARE FATAL! (aka there is no point to try call iterate() again)
+	 * SQLITE_DONE notifies about SUCCESS and finish!
+	 * SQLITE_OK notifies about succesfull step (you should call this func again)
 	 * does not throw exceptions
-	 */
-	DatabaseError iterate(int n_pages = 10) noexcept;
-
-	/** differennt backup executors.
-	 * ths function will return err if SQLITE_BUSY/SQLITE_LOCKED
-	 * error is recieved, to give application opportunity
-	 * to make a desicion. Sleeps between steps.
-	 * throws on other errors
-	 * returns SQLITE_DONE on success;
+	 * if n_pages == -1, it will copy an entire database in one call
 	 *
-	 * @example ```
-	 * DatabaseError err;
-	 * while ((err = backup.execute_until_busy()) != SQLITE_DONE) {
-	 *  // do some stuff while we are busy!
-	 * }
-	 * ```
+	 * you may want to call destroy() in case of error or succes. Destructor calls it too.
 	 */
-	DatabaseError execute_until_busy(int n_pages = 10);
+	[[nodiscard]] DatabaseError iterate(int n_pages = 10) noexcept;
 
-	/** different backup executors.
-	 * this one assumes that src database will never
-	 * be busy for too long (or busy at all).
-	 * throws on errors and SQLITE_LOCKED!
-	 */
-	void execute_sync(int n_pages = 10);
-
-	/** different backup executors.
-	 * executes backup procedure without delays and NOW!
-	 * assumes that src database will never be busy for too long (or busy at all).
-	 * Throws on errors.
-	 */
-	void execute_now();
+	// DEPRECATED AND REMOVED
+	//DatabaseError execute_until_busy(int n_pages = 10);
+	//void execute_sync(int n_pages = 10);
+	//void execute_now();
 
 	/// rolls back everything if backup was not finished!
 	~Backup() { destroy().supress(); }
@@ -529,7 +514,6 @@ Database connect_or_create(const char* url);
  * it allows to pass all arguments directly using one string, extra args to select VFS and so on.
  * see https://www.sqlite.org/c3ref/open.html URI filenames section fore more info, warnings and examples
  * @warning you REALLY should visit link above, because certain URI settings can lead to database corruption
- *
  * @example "file:///home/fred/data.db"
  * @example "file:data.db?mode=ro&cache=private"
  * @example "file:/home/fred/data.db?vfs=unix-dotfile"
@@ -549,6 +533,10 @@ class Database {
 		db = src.db; src.db = nullptr;
 	}
 
+	/** there is no way to copy database handler, and should not be any...
+	 * well no, it is possible if iopen same database file multiple times with shared cache and WAL but it's tricky. AND prefomance intensive.
+	 * better to use separate thread and SQL Pool for that.
+	 */
 	Database &operator=(Database && src);
 
 	Database(const char *url) : Database(connect_or_create(url)) {}
@@ -567,20 +555,24 @@ class Database {
 	 * does not throw exceptions. Used by factories-functions!
 	 * and CAN be used directly! 
 	 */
-	DatabaseError raw_open(const char *path, int flags) noexcept;
+	[[nodiscard]] DatabaseError raw_open(const char *path, int flags) noexcept;
 
+	// theese functions removed to be replaced by explicit factories and prevent accidental mistakes.
+	// raw_open will still be availab;le, because it is a "PRO" one.
 	/// same as sqlite::connect_or_create()!
-	void open(const char* path) {*this = sqlite::connect_or_create(path);}
-
+	//void open(const char* path) {*this = sqlite::connect_or_create(path);}
 	/// same as sqlite::connect_uri()!
-	void open_uri(const char* uri) {*this = sqlite::connect_uri(uri);}
+	//void open_uri(const char* uri) {*this = sqlite::connect_uri(uri);}
 
 	/** flushes all cache into disk to write results. */
 	void flush() {
 		if (db) sqlite3_db_cacheflush(db);
 	}
 
-	/** attempts to free as much memory as possible. Use in case of OOM */
+	/** attempts to free as much memory (RAM) as possible. Use in case of OOM
+	 * You should'nt do it in other cases, because it will flush RAM cache and will force
+	 * database to read all shit from the disk again. And this is slow.
+	 */
 	void shrink_to_fit() {
 		if (db) sqlite3_db_release_memory(db);
 	}
@@ -588,7 +580,7 @@ class Database {
 	/** check is database readonly. result on closed/not opened database is undefined. */
 	bool is_readonly() { return db ? sqlite3_db_readonly(db, "main") : false; }
 
-	/** fire and forget. sqlite3_exec()-like, but with bind() available. throws on error! */
+	/** fire and forget. sqlite3_exec()-like, but with bind() available (and without row callback). throws on error! */
 	template <typename... Args>
 	inline void exec(Text sql, Args&& ...args) {
 		if (!db) throw std::runtime_error("database is not opened!");
@@ -622,12 +614,15 @@ Database connect(const char* path, bool readonly = false, bool ignore_not_exists
 /** opens database at specified path OR creatres new one.
  * database is ALWAYS opened in readwrite mode!
  * throws on errors.
+ *
+ * this is recommended call. Especially when you have all schema being reexecuted 
+ * exery time app starts (which is a good thing)
  */
 inline Database connect_or_create(const char* path) {
 	return connect(path, false, true);
 }
 
-/** opens in-memory database. No data will be readed/writed from/to disk!
+/** opens an empty in-memory database. No data will be readed/writed from/to disk!
  */
 Database create_memory(const char* path = "");
 

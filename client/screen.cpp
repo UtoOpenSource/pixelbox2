@@ -55,24 +55,74 @@ namespace screen {
 		}
 	}
 
+	bool show_demo_window = true;
+
 	/**
 	 * IMGUI debug and welcome window
 	 */
 	static Register r([](int){
-		ImGui::ShowDemoWindow();
+		if (!show_demo_window) return;
+		ImGui::ShowDemoWindow(&show_demo_window);
 	});
 
+	/** REAL screen system */
+	static Screen* curr_scr = nullptr;
+	bool change(Screen* scr) {
+		if (scr == curr_scr) return false;
+		if (curr_scr) curr_scr->deactivate();
+		curr_scr = scr;
+		if (curr_scr) curr_scr->activate();
+		return true;
+	}
+
+	Screen::~Screen() {}
+
 };
 
 };
+
+#include "profiler.hpp"
+
+static bool handle_exit_cond(pb::BackendRAII &w) {
+	if (!w.tick()) { // exit requested
+		if (pb::screen::curr_scr) { // if have screen
+			return pb::screen::curr_scr->exit_req() != 0; // not return if requiest handler returns 0
+		} else {
+			return false; // stop app
+		}
+	}
+	return true; // do not exit app, continue drawing and etc.
+}
 
 int main() {
+
+	auto ctx = pb::prof::init_thread_data();
 	pb::BackendRAII &w = *pb::graphics;
 
-	while (w.tick()) {
-		w.clear();
-		pb::screen::DrawAll();
-		w.flush();
+	while (handle_exit_cond(w)) {
+		{ 
+			PROFILING_SCOPE("graphics->clear");
+			w.clear();
+		}
+
+		{
+			PROFILING_SCOPE("update")
+			pb::screen::DrawAll();
+		}
+
+		ctx.step();
+
+		{
+			PROFILING_SCOPE("background->draw")
+			if (pb::screen::curr_scr) pb::screen::curr_scr->redraw();
+		}
+
+		{
+			PROFILING_SCOPE("grpahics->flush")
+			w.flush();
+		}
 	}
+
+	pb::screen::change(nullptr); // free any current screen
 	delete pb::screen::funclist;
 }

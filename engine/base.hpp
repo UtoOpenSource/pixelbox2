@@ -21,6 +21,7 @@
 /*
  * Please use compiler with C++20 concepts and general C++20 support to compile pixelbox! 
  */
+#pragma once
 #if !((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L || PB_NO_STDVER_CHECK)
 #error C++17 support is required!
 #endif

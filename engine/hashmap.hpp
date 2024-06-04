@@ -1,8 +1,11 @@
+// original lib from https://github.com/emilk/emilib
 // By Emil Ernerfeldt 2014-2017
 // LICENSE:
 //   This software is dual-licensed to the public domain and under the following
 //   license: you are granted a perpetual, irrevocable license to copy, modify,
 //   publish, and distribute this file as you see fit.
+
+// edited a little for my purposes
 
 #pragma once
 
@@ -12,8 +15,6 @@
 #include <string_view>
 #include <utility>
 #include <cassert>
-
-// original lib from https://github.com/emilk/emilib
 
 namespace pb {
 
