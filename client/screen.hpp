@@ -35,8 +35,17 @@ extern class BackendRAII {
 
 namespace screen {
 
+	/** "draw" and process all screens and windows. do not use anywhere except one place where this function is already placed! */
 	void DrawAll();
 
+	/**
+	 Screens are global root IMGUI draw callbacks for pixelbox GUI.
+	 In them we create and manipulate window/windows as we wish, independently.
+	 I was constantly trying to create some sort of global window management system... But it's not worth it.
+	 So... Yea...
+
+	 Please not split build system in independent libraries, or this wll broke (as well as doctests)
+	*/
 	struct Register {
 		public:
 		Register(std::function<void(int)> f, int priority = 0);
