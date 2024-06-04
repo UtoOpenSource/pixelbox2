@@ -25,12 +25,6 @@
 #error C++17 support is required!
 #endif
 
-#pragma once
-#include <concepts>
-#if !(__cpp_concepts)
-#error C++20 concepts support is required!
-#endif
-
 #include <stdint.h>
 #include <limits.h>
 

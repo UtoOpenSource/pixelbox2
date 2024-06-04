@@ -52,6 +52,8 @@ namespace screen {
 		~Register() = default;
 	};
 
+	extern bool show_fps_overlay;
+
 };
 
 };

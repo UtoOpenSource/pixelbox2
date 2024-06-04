@@ -18,9 +18,11 @@
  */
 
 #include "screen.hpp"
-#include <unistd.h>
 #include "imgui.h"
+#include <cstdio>
+#include <deque>
 #include <queue>
+#include <vector>
 
 namespace pb {
 
@@ -53,7 +55,10 @@ namespace screen {
 		}
 	}
 
-	Register r([](int){
+	/**
+	 * IMGUI debug and welcome window
+	 */
+	static Register r([](int){
 		ImGui::ShowDemoWindow();
 	});
 
