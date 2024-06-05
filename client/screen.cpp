@@ -19,8 +19,6 @@
 
 #include "screen.hpp"
 #include "imgui.h"
-#include <cstdio>
-#include <deque>
 #include <queue>
 #include <vector>
 
@@ -115,6 +113,11 @@ int main() {
 		{
 			PROFILING_SCOPE("background->draw")
 			if (pb::screen::curr_scr) pb::screen::curr_scr->redraw();
+		}
+
+		{
+			PROFILING_SCOPE("dude->draw")
+			
 		}
 
 		{

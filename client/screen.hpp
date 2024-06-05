@@ -19,7 +19,6 @@
 
 #include <functional>
 #include "SDL_events.h"
-#include "imgui.h"
 #include <SDL2/SDL_keyboard.h>
 
 namespace pb {
