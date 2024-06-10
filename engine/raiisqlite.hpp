@@ -25,8 +25,10 @@
 #include <cstdint>
 #include <stdexcept>
 #include <string_view>
+#include "base.hpp"
 #include "bindata.hpp"
 #include "sqlite3.h"
+#include "printf.h"
 
 /// predefinition
 namespace sqlite {
@@ -94,7 +96,7 @@ namespace impl {
 template <bool report>
 class DbError;
 
-template<> // no error report, mosrt checks are optimized out
+template<> // no error report, most checks are optimized out
 class DbError<false> {
 	friend class Testing;
 	protected:
@@ -123,7 +125,7 @@ class DbError<false> {
 	[[nodiscard]] inline bool check() {return !is_error();} // error is checked
 	[[nodiscard]] inline int get() {return errcode;} // error is kinda checked?
 	inline void supress() {} // threat as we don't care about this error at all
-	inline void raise() {if (is_error()) throw std::runtime_error(sqlite3_errstr(errcode));} // raise exception on error
+	inline void raise() {if (is_error()) LOG_FATAL("%s", sqlite3_errstr(errcode));} // raise exception on error
 	inline DbError copy() const {return DbError(errcode);}
 
 	inline ~DbError() = default;
@@ -158,7 +160,7 @@ class DbError<true> : public DbError<false> {
 	inline void raise() { // raise exception on error
 		if (is_error()) {
 			is_checked = true;
-			throw std::runtime_error(sqlite3_errstr(errcode));
+			LOG_FATAL("%s", sqlite3_errstr(errcode));
 		}
 	}
 	inline DbError copy() const {return DbError(errcode);}
@@ -171,7 +173,7 @@ class DbError<true> : public DbError<false> {
 	[[nodiscard]] inline bool operator!=(int sqlerr) {return !(*this == sqlerr);}
 
 	inline ~DbError() {
-			if (is_error() && !is_checked) fprintf(stderr, "unhandled Database Error : %s, %i\n", sqlite3_errstr(errcode), errcode);
+			if (is_error() && !is_checked) LOG_ERROR("unhandled Database Error : %s, %i\n", sqlite3_errstr(errcode), errcode);
 	}
 
 };
@@ -260,7 +262,7 @@ class QueryResult {
 	friend class Statement;
 	sqlite3_stmt *stmt;
 	QueryResult(sqlite3_stmt *v) : stmt(v) {
-		if (v == nullptr) throw std::runtime_error("nullptr statement!");
+		if (v == nullptr) LOG_FATAL("nullptr statement!");
 	}
 	
  public:
@@ -436,11 +438,13 @@ class Backup {
 	Backup() = default;
 
 	// fast init
+	// CHECK FOR SUCCESS USING BOOL OPERATOR!
 	template <typename... Args>
 	inline Backup(sqlite3 *src, sqlite3 *dest, Args&&... args) {
-		if (!src || !dest) throw std::runtime_error("database is nullptr!");
-		if (!start(src, dest, std::forward<Args>(args)...).check()) {
-			throw std::runtime_error(sqlite3_errmsg(dest)); // it has more complete error message
+		if (!src || !dest) LOG_FATAL("database is nullptr!");
+		if (start(src, dest, std::forward<Args>(args)...).check() == false) {
+			printf_(sqlite3_errmsg(dest)); // it has more complete error message
+			return;
 		}
 	}
 
@@ -449,17 +453,10 @@ class Backup {
 	}
 
 	/** initializes backup operation
-	 * returns errors, not throws. 
+	 * returns errors.
 	 * you can get error message from dest database!
-	 *
-	 * set delay argument to zero to never sleep in
-	 * execute() routines! 
-	 * this may be important in cases you know that 
-	 * databases will never be locked/busy, or busy for long
-	 *
-	 * i don't know why i did all this shit.. but anyway
 	 */
-	[[nodiscard]] DatabaseError start(sqlite3 *src, sqlite3 *dest, const char* schema_name = "main");
+	[[nodiscard]] DatabaseError start(sqlite3 *src, sqlite3 *dest, const char* schema_name = "main") noexcept;
 
 	int remaining() const noexcept { return ctx ? sqlite3_backup_remaining(ctx) : 0; }
 	int length() const noexcept { return ctx? sqlite3_backup_pagecount(ctx) : 0; }
@@ -506,9 +503,9 @@ class Backup {
 
 /** opens database at specified path OR creatres new one.
  * database is ALWAYS opened in readwrite mode!
- * throws on errors.
+ * check for success using BOOL operator!
  */
-Database connect_or_create(const char* url);
+Database connect_or_create(const char* url) noexcept;
 
 /** opens database using URI.
  * it allows to pass all arguments directly using one string, extra args to select VFS and so on.
@@ -518,7 +515,7 @@ Database connect_or_create(const char* url);
  * @example "file:data.db?mode=ro&cache=private"
  * @example "file:/home/fred/data.db?vfs=unix-dotfile"
  */
-Database connect_uri(const char* uri);
+Database connect_uri(const char* uri) noexcept;
 
 class Database {
 	friend class Testing;
@@ -529,18 +526,19 @@ class Database {
 	Database &operator=(const Database &) = delete;
 
 	// v.1.1 allow move construction
-	Database(Database && src) {
+	Database(Database && src) noexcept {
 		db = src.db; src.db = nullptr;
 	}
 
 	/** there is no way to copy database handler, and should not be any...
-	 * well no, it is possible if iopen same database file multiple times with shared cache and WAL but it's tricky. AND prefomance intensive.
+	 * well no, it is possible if you will open same database file multiple times with shared cache and WAL but it's tricky. AND prefomance intensive.
 	 * better to use separate thread and SQL Pool for that.
 	 */
 	Database &operator=(Database && src);
 
-	Database(const char *url) : Database(connect_or_create(url)) {}
-	~Database() { close(); }
+	/// @warning does not throw, check using bool() operator for suyccess
+	Database(const char *url) noexcept : Database(connect_or_create(url)) {}
+	~Database() noexcept { close(); }
 
 	public:
 	operator bool() const { return !!db; }
@@ -583,7 +581,11 @@ class Database {
 	/** fire and forget. sqlite3_exec()-like, but with bind() available (and without row callback). throws on error! */
 	template <typename... Args>
 	inline void exec(Text sql, Args&& ...args) {
-		if (!db) throw std::runtime_error("database is not opened!");
+		if (!db) {
+			LOG_ERROR("database is not opened!");
+			return;
+		}
+
 		Text curr = sql;
 		Statement stmt;
 		DatabaseError err;
@@ -595,7 +597,7 @@ class Database {
 		}
 		
 		if (err != SQLITE_EMPTY) { // oh no
-			throw std::runtime_error(stmt.get_compile_error(db, sql, curr));
+			LOG_ERROR("%s", stmt.get_compile_error(db, sql, curr).c_str());
 		}
 	};
 
@@ -605,25 +607,25 @@ class Database {
 
 /** opens database at specified path with default settings 
  * will NOT attempt to create database, if it does not exists by default!
- * throws on errors.
+ * returns empty database on errors
  * readonly parameter is self-explainatory. 
  * ignore_not_exists - database will be created, if not exists and mode is NOT readonly
  */
-Database connect(const char* path, bool readonly = false, bool ignore_not_exists = false);
+Database connect(const char* path, bool readonly = false, bool ignore_not_exists = false) noexcept;
 
 /** opens database at specified path OR creatres new one.
  * database is ALWAYS opened in readwrite mode!
- * throws on errors.
+ * returns empty database on errors
  *
  * this is recommended call. Especially when you have all schema being reexecuted 
  * exery time app starts (which is a good thing)
  */
-inline Database connect_or_create(const char* path) {
+inline Database connect_or_create(const char* path) noexcept {
 	return connect(path, false, true);
 }
 
 /** opens an empty in-memory database. No data will be readed/writed from/to disk!
  */
-Database create_memory(const char* path = "");
+Database create_memory(const char* path = "") noexcept;
 
 };

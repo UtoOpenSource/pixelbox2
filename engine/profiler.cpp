@@ -21,6 +21,7 @@
  This stuff is kinda legacy, but it works and i don't care
 */
 
+#include "base.hpp"
 #define PROFILER_DEFINE_EXT
 #include "profiler.hpp"
 #include "clock.hpp"
@@ -148,7 +149,7 @@ struct DataImpl {
 	prof_item& push(const std::string* name) {
 		prof_stats* val = stat(name);
 		auto& v = stack.emplace(val, use());
-		if (stack.size() == 0) std::runtime_error("What the fuck");
+		if (stack.size() == 0) LOG_FATAL("What the fuck");
 		return v;
 	}
 	/** pop zone call from stack*/
@@ -229,7 +230,7 @@ namespace impl {
 			return v->second;
 		}
 
-		throw std::runtime_error("thread was not registered!");
+		LOG_FATAL("Thread was not registered");
 	};
 
 	DataImpl& new_thread_data() {
@@ -238,21 +239,21 @@ namespace impl {
 		auto& data = ruse.ref;
 
 		auto v = data.find(id); // we don't want to always call a constructor
-		if (v != data.end()) throw std::runtime_error("thread was already registered!");;
+		if (v != data.end()) LOG_FATAL("thread was already registered!");
 
 		return data.emplace(id, DataImpl(curr_id())).first->second; // else
 	};
 
 	void delete_thread_data(DataImpl& impl) {
 		auto id = curr_id();
-		if (id != impl.key) std::runtime_error("Deleting thread data from another thread. \
+		if (id != impl.key) LOG_FATAL("Deleting thread data from another thread. \
 		(If you don't change anything, fault is in your stdc++ library std::thread destructor implementation)");
 
 		auto ruse = prof_data.use(); // lock
 		auto& data = ruse.ref;
 
 		auto v = data.find(id); // we don't want to always call a constructor
-		if (v == data.end()) std::runtime_error("This thread was already unregistered. You have big and bad issues... Use sanitizers");
+		if (v == data.end()) LOG_FATAL("This thread was already unregistered. You have big and bad issues... Use sanitizers");
 		data.erase(v);
 	}
 
@@ -451,7 +452,7 @@ size_t history_size() {
  */
 StatsStorage2 get_summary(ThreadID id, size_t pos) {
 	if (pos >= HISTORY_LEN) // error (misuse)
-		std::runtime_error("History position is out of range!");
+		LOG_FATAL("History position is out of range!");
 	
 	StatsStorage res;
 	{

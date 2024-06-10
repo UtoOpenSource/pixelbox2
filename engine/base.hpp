@@ -29,6 +29,20 @@
 #include <stdint.h>
 #include <limits.h>
 
+#ifdef __GNUC__
+# if ((__GNUC__ == 4 && __GNUC_MINOR__>= 4) || __GNUC__ > 4)
+#  define ATTR_PRINTF(one_based_format_index, first_arg) \
+__attribute__((format(gnu_printf, (one_based_format_index), (first_arg))))
+# else
+# define ATTR_PRINTF(one_based_format_index, first_arg) \
+__attribute__((format(printf, (one_based_format_index), (first_arg))))
+# endif
+# define ATTR_VPRINTF(one_based_format_index) ATTR_PRINTF((one_based_format_index), 0)
+#else
+# define ATTR_PRINTF(one_based_format_index, first_arg)
+# define ATTR_VPRINTF(one_based_format_index)
+#endif
+
 namespace pb {
 
 	/** Useful OOP Base classes */
@@ -75,7 +89,17 @@ namespace pb {
 
 	using Virtual = Abstract;
 
+	extern void log_func(const char* file, int line, int level, const char* fmt, ...) noexcept ATTR_PRINTF(4, 5);
+	[[noreturn]] extern void terminate();
 };
+
+#define LOG_ANY(level, fmt, ...) pb::log_func(__FILE__, __LINE__, level, fmt ,##__VA_ARGS__)
+/// this one will terminate thread/prgram
+#define LOG_FATAL(...) do{LOG_ANY(0, __VA_ARGS__); pb::terminate();} while(0)
+#define LOG_ERROR(...) LOG_ANY(1, __VA_ARGS__)
+#define LOG_WARN(...) LOG_ANY(2, __VA_ARGS__)
+#define LOG_INFO(...) LOG_ANY(3, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG_ANY(4, __VA_ARGS__)
 
 /*
  * MACROS MAGIC AT THE END

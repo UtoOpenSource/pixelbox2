@@ -149,8 +149,11 @@ DatabaseError Statement::iterate() noexcept {
 	return rc; // error or done
 }
 
-DatabaseError Backup::start(sqlite3 *src, sqlite3 *dest, const char* schema_name) {
-		if (!src || !dest) throw std::runtime_error("database is nullptr!");
+DatabaseError Backup::start(sqlite3 *src, sqlite3 *dest, const char* schema_name) noexcept {
+		if (!src || !dest) {
+			printf_("database is nullptr!");
+			return SQLITE_MISUSE;
+		}
 		if (!schema_name) schema_name = "main";
 		ctx = sqlite3_backup_init(dest, schema_name, src, schema_name);
 		if (!ctx) {
@@ -196,15 +199,15 @@ std::string Statement::expanded_sql() {
 	return v;
 }
 
-static void db_open_check(DatabaseError e) {
+static void db_open_check(DatabaseError e) noexcept {
 	std::string errmsg = "Can't open database : ";
 	errmsg += sqlite3_errstr(e.get());
 	errmsg += "!";
 
-	if (e != SQLITE_OK) throw std::runtime_error(errmsg);
+	if (e != SQLITE_OK) printf_("%s\n", errmsg.c_str());
 }
 
-Database connect(const char* url, bool readonly, bool ignore_not_exists) {
+Database connect(const char* url, bool readonly, bool ignore_not_exists) noexcept {
 	Database db;
 	int flags = 0;
 	flags |= readonly ? SQLITE_OPEN_READONLY : SQLITE_OPEN_READWRITE;
@@ -215,14 +218,14 @@ Database connect(const char* url, bool readonly, bool ignore_not_exists) {
 	return db;
 }
 
-Database create_memory(const char* url) {
+Database create_memory(const char* url) noexcept {
 	Database db;
 	int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_MEMORY;
 	db_open_check(db.raw_open(url, flags));
 	return db;
 }
 
-Database connect_uri(const char* url) {
+Database connect_uri(const char* url) noexcept {
 	Database db;
 	// last one are required!
 	db_open_check(db.raw_open(url, SQLITE_OPEN_URI | SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE));
