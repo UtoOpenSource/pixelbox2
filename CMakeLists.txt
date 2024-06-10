@@ -20,7 +20,7 @@ target_link_libraries(libSDL INTERFACE ${SDL2_LIBRARIES})
 #lib Game
 file(GLOB Game_SRC CONFIGURE_DEPENDS "client/*.cpp" "client/*/*.cpp" "external/*.cpp" "external/*.c" "engine/*.cpp" "engine/*/*.cpp")
 add_library(libGame OBJECT ${Game_SRC})
-target_include_directories(libGame PUBLIC "external/")
+target_include_directories(libGame PUBLIC "external/" "engine/")
 target_link_libraries(libGame PUBLIC)
 
 message("${Base_SRC}")
@@ -30,5 +30,5 @@ target_link_libraries(pixelbox PUBLIC libGame)
 target_link_libraries(pixelbox PUBLIC libSDL GL)
 target_include_directories(pixelbox PUBLIC "${PROJECT_BINARY_DIR}")
 
-add_compile_options(-fsanitize=undefined -Og -g)
+add_compile_options(-fsanitize=undefined -Og -g -fno-exceptions)
 add_link_options(-fsanitize=undefined)

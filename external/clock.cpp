@@ -33,16 +33,19 @@ namespace pb {
 
 	class ClockSource __clocksource;
 	
+	
 	void ClockSource::init() {}
+
+	static auto start_clock = std::chrono::high_resolution_clock::now();
 
 	double ClockSource::time() {
 		using namespace std::chrono;
 		using Clock = std::chrono::high_resolution_clock;
     auto now = Clock::now();
-    auto duration = now.time_since_epoch();
+    auto duration = now - start_clock; // return diff since app startup
 		const std::chrono::duration<double, std::nano> seconds{duration};
 		return seconds / 1s;
-	}	
+	}
 
 	float  ClockSource::delta() { // frame time
 		return frame_time;

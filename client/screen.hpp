@@ -23,16 +23,19 @@
 
 namespace pb {
 
-extern class BackendRAII {
-	public:
-	BackendRAII() {}
-	BackendRAII(const BackendRAII&) = delete;
-	BackendRAII(const BackendRAII&&) {};
-	virtual ~BackendRAII() = 0;
-	virtual bool tick() = 0;  /** check if window was closed */
-	virtual void clear() = 0; /**swap buffer and clear */
-	virtual void flush() = 0; /** flush imgui, you can render your own stuff ater this (background and game itself)*/
-} *graphics;
+namespace window {
+	extern SDL_Window* ptr;
+	extern int width;
+	extern int height;
+
+	extern int  init(int flags);
+	extern int  close();
+	extern void clear();
+	extern int input(SDL_Event& e); // -1 - requested exit, 0 - no ecents to process, 1 - there are events to process
+	extern void flush();
+
+	extern bool set_swap_interval(int interval);
+};
 
 namespace screen {
 

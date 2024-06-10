@@ -17,6 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/**
+ This stuff is kinda legacy, but it works and i don't care
+*/
+
 #define PROFILER_DEFINE_EXT
 #include "profiler.hpp"
 #include "clock.hpp"
