@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.13)
 
 project(Pixelbox)
 
@@ -8,8 +8,11 @@ set (CMAKE_BUILD_TYPE Debug)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-add_definitions("-Wall" "-Wextra")
+#add_definitions("")
 include_directories(${PROJECT_SOURCE_DIR})
+add_link_options(-fsanitize=undefined -fsanitize=address)
+add_compile_options(-fsanitize=undefined -fsanitize=address -Og -g -Wall -Wextra)
+
 
 # SDL 
 find_package(SDL2 REQUIRED)
@@ -29,6 +32,3 @@ add_executable(pixelbox)
 target_link_libraries(pixelbox PUBLIC libGame)
 target_link_libraries(pixelbox PUBLIC libSDL GL)
 target_include_directories(pixelbox PUBLIC "${PROJECT_BINARY_DIR}")
-
-add_compile_options(-fsanitize=undefined -Og -g -fno-exceptions)
-add_link_options(-fsanitize=undefined)

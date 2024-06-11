@@ -34,11 +34,14 @@ static struct HelpManager {
 		std::string name;
 		bool is_closed = false;
 		std::string content;
+		ImGui::MarkdownTree tree;
 
 		void draw() {
 			if (ImGui::BeginTabItem(name.c_str())) {
-				imgui_md md;
-				md.print(content.data(), content.data() + content.size());
+				if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, 0)) {
+					tree.draw(name.c_str());
+				}
+				ImGui::EndChild();
 				ImGui::EndTabItem();
 			}
 		}
@@ -57,22 +60,28 @@ static Register r2([](int) {
 		for (const auto & entry : fs::directory_iterator(path)) {
    		std::ifstream f(entry.path());
 			buffer << f.rdbuf();
-			man.tabs.emplace_back(HelpManager::HelpTab{.name=entry.path().filename(), .is_closed=false, .content=buffer.str()});
+			auto& v = man.tabs.emplace_back(HelpManager::HelpTab{.name=entry.path().filename(), .is_closed=false, .content=buffer.str(), .tree={}});
+			v = man.tabs.back();
+			ImGui::MarkdownParser parser(v.tree, v.content, false);
+			//parser.parse(); // yuppi
 			buffer = {};
 		}
 		loaded=true;
 	}
 
-	if (ImGui::Begin("User Guide", &show_help_window, ImGuiWindowFlags_Modal | ImGuiWindowFlags_AlwaysVerticalScrollbar)) {
+	if (ImGui::Begin("User Guide", &show_help_window, ImGuiWindowFlags_Modal)) {
 		if (ImGui::BeginTabBar("tabs")) {
 			if (ImGui::BeginTabItem("Controls")) {
-				ImGui::SeparatorText("USER GUIDE:");
-				ImGui::ShowUserGuide();
-				ImGui::SeparatorText("DEBUG SHORTCUTS :");
-				ImGui::BulletText("F1  - Open this Help");
-				ImGui::BulletText("F7  - Open ImGUI Demo");
-				ImGui::BulletText("F8  - Show Profiler");
-				ImGui::BulletText("F10 - Show FPS Overlay");
+				if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, 0)) {
+					ImGui::SeparatorText("USER GUIDE:");
+					ImGui::ShowUserGuide();
+					ImGui::SeparatorText("DEBUG SHORTCUTS :");
+					ImGui::BulletText("F1  - Open this Help");
+					ImGui::BulletText("F7  - Open ImGUI Demo");
+					ImGui::BulletText("F8  - Show Profiler");
+					ImGui::BulletText("F10 - Show FPS Overlay");
+				}
+				ImGui::EndChild();
 				ImGui::EndTabItem();
 			}
 

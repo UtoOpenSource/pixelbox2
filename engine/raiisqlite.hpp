@@ -526,11 +526,16 @@ class Database {
 	Database(const Database &) = delete;
 	Database &operator=(const Database &) = delete;
 
+	void assert_owned() {
+		if (!own_handle) LOG_FATAL("SHIT HAPPENED!");
+	}
+
 	// v.1.1 allow move construction
 	Database(Database && src) noexcept {
 		db = src.db; 
 		own_handle = src.own_handle;
 		src.db = nullptr;
+		LOG_DEBUG("DATABASE MOVED! %p %i", db, own_handle);
 	}
 
 	/* construct from raw handle (with ability to not autodestroy by default)
@@ -543,7 +548,7 @@ class Database {
 	 * setting own status to false will prevent automatic destruction of the handler, in case of ownershit transfer or whatever
 	 * setting own status to true on copy of the handler while original manager is alive will do horrible stuff! (double free and potentially crash)
 	 */
-	void set_own_status(bool manage=true) {own_handle = manage;}
+	void set_own_status(bool manage=true) {own_handle = manage; LOG_DEBUG("CHANGED MANAGE STATE %p!", db);}
 
 	/** there is no way to REALLY copy database handler, and should not be any...
 	 * well no, it is possible if you will open same database file multiple times with shared cache and WAL but it's tricky. AND prefomance intensive.

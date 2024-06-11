@@ -143,6 +143,8 @@ int main() {
 			return -1;
 		}
 
+		pb::client_settings.db.assert_owned();
+
 		// Setup Dear ImGui context
 		ImGui::CreateContext();
 		ImGui::loadExtraFonts();
@@ -153,6 +155,8 @@ int main() {
 		ImGui_ImplSDL2_InitForOpenGL(pb::window::ptr, SDL_GL_GetCurrentContext());
 		ImGui_ImplOpenGL3_Init();
 	}
+
+	pb::client_settings.db.assert_owned();
 
 	while (true) {
 		{
@@ -209,6 +213,7 @@ int main() {
 
 		// step profiler in this thread
 		ctx.step();
+		pb::client_settings.db.assert_owned();
 	}
 
 	// finalization
@@ -221,5 +226,6 @@ int main() {
 	save_all();
 	pb::window::close();
 	pb::client_settings.close();
+	LOG_INFO("DONE!");
 	return 0;
 }

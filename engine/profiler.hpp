@@ -100,7 +100,7 @@ class ThreadData {
   auto make_zone(const char* name) {
     begin(name);
 		struct __nnn {
-			ThreadData &master;
+			ThreadData master;
 			__nnn(ThreadData& d) : master(d) {}
 			~__nnn() {master.end();}
 		}v (*this);
