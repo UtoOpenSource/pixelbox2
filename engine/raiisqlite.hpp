@@ -520,6 +520,7 @@ Database connect_uri(const char* uri) noexcept;
 class Database {
 	friend class Testing;
 	sqlite3 *db = nullptr;
+	bool own_handle = false;
  public:
 	Database() = default;
 	Database(const Database &) = delete;
@@ -527,10 +528,24 @@ class Database {
 
 	// v.1.1 allow move construction
 	Database(Database && src) noexcept {
-		db = src.db; src.db = nullptr;
+		db = src.db; 
+		own_handle = src.own_handle;
+		src.db = nullptr;
 	}
 
-	/** there is no way to copy database handler, and should not be any...
+	/* construct from raw handle (with ability to not autodestroy by default)
+	 * @warning pass manage=true if you want to automaticly destroy database handle!
+	 */
+	void from_raw(sqlite3* h, bool manage=true);
+	/*
+	 * change handle ownership status
+	 * @warning do not mess up with this until you really know what you are doing!
+	 * setting own status to false will prevent automatic destruction of the handler, in case of ownershit transfer or whatever
+	 * setting own status to true on copy of the handler while original manager is alive will do horrible stuff! (double free and potentially crash)
+	 */
+	void set_own_status(bool manage=true) {own_handle = manage;}
+
+	/** there is no way to REALLY copy database handler, and should not be any...
 	 * well no, it is possible if you will open same database file multiple times with shared cache and WAL but it's tricky. AND prefomance intensive.
 	 * better to use separate thread and SQL Pool for that.
 	 */

@@ -31,7 +31,7 @@ namespace screen {
 	 * FPS Overlay window and FPS info system
 	 */
 	// set to true to show window!
-	bool show_fps_overlay = true;
+	bool show_fps_overlay = false;
 
 	struct frametime_summary {
 		double avg = 0, min=0, max=0;

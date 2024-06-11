@@ -177,13 +177,19 @@ DatabaseError Backup::iterate(int n_pages) noexcept {
 }
 
 void Database::close() noexcept {
-	if (db) sqlite3_close_v2(db);
+	if (db && own_handle) sqlite3_close_v2(db); // NEW : do not close unowned handles
 	db = nullptr;
+}
+
+void Database::from_raw(sqlite3* h, bool manage) {
+	close();
+	db = h; own_handle = manage;
 }
 
 DatabaseError Database::raw_open(const char *url, int flags) noexcept{
 	close();
 	int e = sqlite3_open_v2(url, &db, flags, nullptr);
+	own_handle = true; // we need to close it!
 	return e;
 }
 

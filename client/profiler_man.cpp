@@ -18,6 +18,7 @@
  * <https://www.gnu.org/licenses/>.
  */
 
+#include "hashmap.hpp"
 #define PROFILER_DEFINE_EXT
 #include "profiler.hpp"
 
@@ -27,13 +28,14 @@
 #include <set>
 
 #include "imgui.h"
+#include "hashtable.h"
 
 #include "screen.hpp"
 
 namespace pb {
 
 namespace screen {
-	bool show_profiler = true;
+	bool show_profiler = false;
 };
 
 namespace tools {
@@ -52,7 +54,7 @@ using ZoneSet = std::multiset<std::pair<const std::string*, prof::prof_stats>, c
 
 /** utility  functions*/
 static ImColor get_str_color(const std::string& s) {
-	size_t hash = std::hash<std::string>{}(s);
+	size_t hash = pb::murmurhash(s);
 	const ImVec4 col = ImVec4(((hash&127)+127)/255.0, (((hash>>8)&127)+127)/255.0, (((hash>>16)&127)+127)/255.0, 1.0);
 	return col;
 }

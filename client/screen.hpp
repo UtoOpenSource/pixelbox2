@@ -20,6 +20,7 @@
 #include <functional>
 #include "SDL_events.h"
 #include <SDL2/SDL_keyboard.h>
+#include "settings.hpp"
 
 namespace pb {
 
@@ -27,6 +28,7 @@ namespace window {
 	extern SDL_Window* ptr;
 	extern int width;
 	extern int height;
+	extern int swap_interval;
 
 	extern int  init(int flags);
 	extern int  close();
@@ -59,6 +61,7 @@ namespace screen {
 	extern bool show_fps_overlay;
 	extern bool show_profiler;
 	extern bool show_demo_window;
+	extern bool show_help_window;
 
 	/** Screen is a BACKGROUND stuff that happens after IMGui update + Draw 
 	 * We accurately ignore all input preserved by ingui and draw stuff after imgui using DEPTH buffer.
@@ -99,5 +102,7 @@ namespace screen {
 	bool change(Screen*);
 
 };
+
+	extern SettingsManager client_settings;
 
 };

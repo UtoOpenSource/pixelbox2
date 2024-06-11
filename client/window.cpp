@@ -19,6 +19,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_video.h>
+#include "base.hpp"
 #include "galogen.h"
 #include "screen.hpp"
 #include "profiler.hpp"
@@ -33,6 +34,7 @@ namespace window {
 	SDL_Window* ptr = nullptr;
 	int width = 640;
 	int height = 480;
+	int swap_interval = 1;
 
 	int  init(int flags);
 	int  close();
@@ -45,6 +47,7 @@ namespace window {
 bool pb::window::set_swap_interval(int interval) {
 	using pb::window::gl_context;
 	SDL_GL_MakeCurrent(window::ptr, gl_context);
+	swap_interval = interval;
 	return SDL_GL_SetSwapInterval(interval) >= 0;
 }
 
@@ -81,7 +84,7 @@ int window::init(int flags) {
 	}
 
 	SDL_GL_MakeCurrent(window::ptr, gl_context);
-	window::set_swap_interval(1);
+	window::set_swap_interval(swap_interval);
 	glViewport(0, 0, window::width, window::height);
 	ok = true;
 
@@ -112,6 +115,7 @@ int window::input(SDL_Event& e) {
 		if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_RESIZED) {
 			int w = e.window.data1, h = e.window.data2;
 			window::width = w; window::height = h;
+			//LOG_INFO("resized window : %i %i", w, h);
 			glViewport(0, 0, w, h);
 		}
 

@@ -41,14 +41,14 @@ void log_func(const char* file, int line, int level, const char* fmt, ...) noexc
 
 	// pre
 	n = snprintf_(buff, 511, "[%s:%i]'t%s: ", file, line, level_str[level]);
-	fwrite(buff, 1, n, stderr); // write message
+	if (n > 0) fwrite(buff, 1, n, stderr); // write message
 	
 	// message
 	va_list args;
 	va_start(args, fmt);
 	n = vsnprintf_(buff, 511, fmt, args);
 	va_end(args);
-	fwrite(buff, 1, n, stderr); // write message
+	if (n > 0) fwrite(buff, 1, n, stderr); // write message
 	fputc('\n', stderr);
 }
 

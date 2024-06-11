@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "SDL_events.h"
+#include "SDL_keycode.h"
 #include "SDL_video.h"
 #include "external/imgui.h"
 #include "imgui.h"
@@ -30,6 +31,8 @@
 #include "imgui_impl_sdl2.h"
 
 namespace pb {
+
+SettingsManager client_settings;
 
 namespace screen {
 
@@ -62,7 +65,8 @@ void DrawAll() {
 	}
 }
 
-bool show_demo_window = true;
+bool show_demo_window = false;
+bool show_help_window = true;
 
 /**
  * IMGUI debug and welcome window
@@ -90,36 +94,64 @@ Screen::~Screen() {}
 
 #include "profiler.hpp"
 
-static bool need_handle_exit_cond() { // exit requested
+static bool need_handle_exit_cond() {							 // exit requested
 	if (pb::screen::curr_scr) {											 // if have screen
 		return pb::screen::curr_scr->exit_req() == 0;	 // exit if requiest handler returns 0
 	} else {
-		return true; // stop app
+		return true;	// stop app
 	}
-	return false;	// do not exit app, continue drawing and etc.
+	return false;	 // do not exit app, continue drawing and etc.
 }
 
-extern void main_process_input(SDL_Event& e) {}
+// debug shortcuts
+static void extra_keys(SDL_Event& e) {
+	if (e.type == SDL_KEYDOWN) {
+		if (e.key.keysym.sym == SDLK_F1) pb::screen::show_help_window = !pb::screen::show_help_window;
+		if (e.key.keysym.sym == SDLK_F7) pb::screen::show_demo_window = !pb::screen::show_demo_window;
+		if (e.key.keysym.sym == SDLK_F8) pb::screen::show_profiler = !pb::screen::show_profiler;
+		if (e.key.keysym.sym == SDLK_F10) pb::screen::show_fps_overlay = !pb::screen::show_fps_overlay;
+	}
+}
+
+static void load_all() {
+	auto& m = pb::client_settings;
+	m.get("window_width", pb::window::width);
+	m.get("window_height", pb::window::height);
+	m.get("window_swap_interval", pb::window::swap_interval);
+}
+
+static void save_all() {
+	auto& m = pb::client_settings;
+	m.set("window_width", pb::window::width);
+	m.set("window_height", pb::window::height);
+	m.set("window_swap_interval", pb::window::swap_interval);
+}
+
+namespace ImGui {
+	extern void loadExtraFonts();
+};
 
 int main() {
 	auto ctx = pb::prof::init_thread_data();
 
 	{
-	PROFILING_SCOPE("Init::ALL");
+		PROFILING_SCOPE("Init::ALL");
+		pb::client_settings.open("client.db");	// settings
+		load_all();
 
-	if (pb::window::init(0) != 0) {
-		return -1;
-	}
+		if (pb::window::init(0) != 0) {
+			return -1;
+		}
 
-	// Setup Dear ImGui context
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	 // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	 // Enable Gamepad Controls
-	// setup InGui backends
-	ImGui_ImplSDL2_InitForOpenGL(pb::window::ptr, SDL_GL_GetCurrentContext());
-	ImGui_ImplOpenGL3_Init();
-
+		// Setup Dear ImGui context
+		ImGui::CreateContext();
+		ImGui::loadExtraFonts();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	 // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	 // Enable Gamepad Controls
+		// setup InGui backends
+		ImGui_ImplSDL2_InitForOpenGL(pb::window::ptr, SDL_GL_GetCurrentContext());
+		ImGui_ImplOpenGL3_Init();
 	}
 
 	while (true) {
@@ -139,6 +171,7 @@ int main() {
 			while ((status = pb::window::input(e)) > 0) {
 				auto& io = ImGui::GetIO();
 				ImGui_ImplSDL2_ProcessEvent(&e);
+				extra_keys(e);
 				// check if imgui want to exclusively capture theese events
 				// ImGui already recieved events above in w.tick()!
 				if (io.WantCaptureKeyboard && (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)) continue;
@@ -148,14 +181,14 @@ int main() {
 				if (pb::screen::curr_scr) pb::screen::curr_scr->input(e);
 			}
 
-			if (status == -1 && need_handle_exit_cond()) { // program exit condition
-				break; // break infinite loop
+			if (status == -1 && need_handle_exit_cond()) {	// program exit condition
+				break;																				// break infinite loop
 			}
 		}
 
 		{
 			PROFILING_SCOPE("ImGui::AllWindows")
-			pb::screen::DrawAll(); // draw ingui windows
+			pb::screen::DrawAll();	// draw ingui windows
 		}
 
 		{
@@ -185,6 +218,8 @@ int main() {
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
+	save_all();
 	pb::window::close();
+	pb::client_settings.close();
 	return 0;
 }
