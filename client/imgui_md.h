@@ -266,6 +266,20 @@ class MarkdownTree {
 	destruction_node* destr_curr = nullptr; // most recent destruction node
 	public:
 
+	MarkdownTree() = default;
+	MarkdownTree(const MarkdownTree&) = delete;
+	MarkdownTree(MarkdownTree&& src) {
+		bumps = std::move(src.bumps);
+		bump_cap = src.bump_cap;
+		src.bump_cap = 0;
+		bump_pos = src.bump_pos;
+		destr_curr = src.destr_curr;
+		src.destr_curr = nullptr;
+		destr_list = src.destr_list;
+		src.destr_list = nullptr;
+		str_copy = src.str_copy;
+	}
+
 	void* allocate_raw(size_t size);
 
 	template <typename T>

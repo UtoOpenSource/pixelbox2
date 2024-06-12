@@ -190,12 +190,12 @@ void MarkdownParser::init_parser() {
 }
 
 void MarkdownParser::close_headers(int level) {
-	while (top()->get_type() == MB_HEADER) {
+	while (top()->get_type() == MB_HEADER ) {
 		auto* node = (MBHeader*)top();
 		if (node->level < level) break; // success
 		pop();
 	}
-	if (top()->get_type() != MB_HEADER && top()->get_type() != MB_DOCUMENT) {
+	if (top()->get_type() != MB_HEADER && top()->get_type() != MB_DOCUMENT && top()->get_type() != MB_QUOTE) {
 		LOG_FATAL("Bad stack for header closing");
 	}
 }
@@ -213,7 +213,8 @@ int MarkdownParser::proc_block(MD_BLOCKTYPE t, void* detail) {
 				LOG_DEBUG("HORIZONTAL LINE --------------------------");
 				auto* node = allocate_obj<MBHLine>();
 				close_headers(0); // close headers BEFORE INSERT!
-				if (top()->get_type() != MB_DOCUMENT) LOG_FATAL("we are fucked");
+				if (top()->get_type() != MB_DOCUMENT && top()->get_type() != MB_QUOTE) 
+					LOG_FATAL("we are fucked");
 				insert(node); // not push, we can't insert anything in HR!
 			} break;
 

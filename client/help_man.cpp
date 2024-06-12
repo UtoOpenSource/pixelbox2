@@ -61,7 +61,7 @@ static Register r2([](int) {
    		std::ifstream f(entry.path());
 			buffer << f.rdbuf();
 			auto& v = man.tabs.emplace_back(HelpManager::HelpTab{.name=entry.path().filename(), .is_closed=false, .content=buffer.str(), .tree={}});
-			v = man.tabs.back();
+			//v = man.tabs.back();
 			ImGui::parseMarkdown(v.tree, v.content); // yupee
 			buffer = {};
 		}
