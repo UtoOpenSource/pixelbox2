@@ -24,6 +24,7 @@
  */
 
 #include "imgui_md.h"
+#include <string_view>
 
 #include "SDL_misc.h"
 #include "base.hpp"
@@ -359,6 +360,7 @@ int MarkdownParser::proc_block_end(MD_BLOCKTYPE t, void* detail) {
 
 	if (t == MD_BLOCK_DOC) { // close headers too
 		close_headers(0);
+		tree->root = top(); // yupee!
 	}
 
 	if (!top() || !top()->is_block()) LOG_FATAL("stack top is NOT block!");
@@ -548,8 +550,6 @@ bool MarkdownParser::parse() {
 	return true;
 }
 
-void MarkdownTree::draw(const char* name) {}
-
 }; // namespace impl
 
 bool parseMarkdown(MarkdownTree& tree, std::string_view md_text) {
@@ -559,6 +559,323 @@ bool parseMarkdown(MarkdownTree& tree, std::string_view md_text) {
 	}
 	tree.clear(); // on parse errors
 	return false;
+}
+
+///
+/// RENDERING
+///
+
+#define MAX_LEVEL 10
+
+extern ImFont* custom_fonts[];
+
+static void line(ImColor c, bool under) {
+	ImVec2 mi = ImGui::GetItemRectMin();
+	ImVec2 ma = ImGui::GetItemRectMax();
+
+	if (!under) {
+		ma.y -= ImGui::GetFontSize() / 2;
+	}
+
+	mi.y = ma.y;
+
+	ImGui::GetWindowDrawList()->AddLine(mi, ma, c, 1.0f);
+}
+
+struct r_ctx {
+	bool is_underline=false;
+	bool is_strikethrough=false;
+	int level;
+	std::string_view title;
+	std::string_view url;
+	char list_char = ' ';
+	int list_index = -1;
+	bool text_drawn = false;
+};
+
+static void open_url(std::string_view url, r_ctx& x) {
+
+}
+
+static void render_text(std::string_view data, r_ctx& x) {
+	const char* str = data.data();
+	const char* str_end = data.data() + data.size();
+	bool is_underline=x.is_underline;
+	bool is_strikethrough=x.is_strikethrough;
+
+	const float scale = ImGui::GetIO().FontGlobalScale;
+	const ImGuiStyle& s = ImGui::GetStyle();
+	bool is_lf = false;
+
+	while (str < str_end) {
+		const char* te = str_end;
+		float wl = ImGui::GetContentRegionAvail().x;
+
+		te = ImGui::GetFont()->CalcWordWrapPositionA(
+			scale, str, str_end, wl);
+
+		if (te == str)++te;
+		ImGui::TextUnformatted(str, te);
+
+		if (te > str && *(te - 1) == '\n') {
+			is_lf = true;
+		}
+		
+		if (!x.url.empty()) {
+			ImVec4 c;
+			if (ImGui::IsItemHovered()) {
+
+				ImGui::SetTooltip("%.*s\n%.*s", int(x.url.size()), x.url.data(),
+				int(x.title.size()), x.title.data());
+
+				c = s.Colors[ImGuiCol_ButtonHovered];
+				if (ImGui::IsMouseReleased(0)) {
+					// open url
+					open_url(x.url, x);
+				}
+			} else {
+				c = s.Colors[ImGuiCol_Button];
+			}
+			line(c, true);
+		}
+		if (is_underline) {
+			line(s.Colors[ImGuiCol_Text], true);
+		}
+		if (is_strikethrough) {
+			line(s.Colors[ImGuiCol_Text], false);
+		}
+
+		str = te;
+		while (str < str_end && *str == ' ')++str;
+	}
+
+	if (!is_lf)ImGui::SameLine(0.0f, 0.0f);
+	x.text_drawn = true;
+}
+
+static void opt_newline(r_ctx& x) {
+	if (x.text_drawn) ImGui::NewLine();
+	x.text_drawn = false;
+}
+
+static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
+	#define DONODE(n) do {x.level++;drawNode(n, x);x.level--;} while(0)
+	#define DOALL(node) for (auto* n: node->nodes) DONODE(n)
+
+	if (x.level > MAX_LEVEL) return; // oh no
+	if (!_node) return; // bad
+
+	if (!_node->is_text_data() & !_node->is_span()) {
+		opt_newline(x);
+	}
+
+	switch(_node->get_type()) {
+		case impl::MB_DOCUMENT: {
+			auto* node = (impl::MBDocument*)_node;
+			DOALL(node);
+		}
+		break;
+		case impl::MB_QUOTE:{
+			auto* node = (impl::MBQuote*)_node;
+			ImGui::PushID((size_t)node);
+			if (ImGui::TreeNodeEx("quote", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
+				DOALL(node);
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		break;
+		case impl::MB_ULIST:{
+			auto* node = (impl::MBUList*)_node;
+			ImGui::PushID((size_t)node);
+			for (auto* n : node->nodes) {
+				x.list_char = node->mark;
+				x.list_index = -1;
+				DONODE(n);
+			}
+			x.list_char = ' ';
+			ImGui::PopID();
+		}
+		break;
+		case impl::MB_OLIST:{
+			auto* node = (impl::MBOList*)_node;
+			int index = node->start_index;
+			ImGui::PushID((size_t)node);
+			for (auto* n : node->nodes) {
+				x.list_char = node->mark;
+				x.list_index = index++;
+				DONODE(n);
+			}
+			x.list_index = -1;
+			x.list_char = ' ';
+			ImGui::PopID();
+		}
+		break;
+		case impl::MB_TABLE:{
+			auto* node = (impl::MBTable*)_node;
+
+		}
+		break;
+		case impl::MB_LITEM:{
+			auto* node = (impl::MBListItem*)_node;
+			if (x.list_char > ' ') {
+				ImGui::TreePush("node");
+				if (x.list_index < 0) {
+					ImGui::Bullet();
+				} else {
+					ImGui::Text("%i. ", x.list_index);
+				}
+				ImGui::SameLine();
+				DOALL(node);
+				ImGui::TreePop();
+			} else {
+				DOALL(node);
+			}
+		}
+		break;
+		case impl::MB_ROW:{
+			auto* node = (impl::MBTableRow*)_node;
+			//DOALL(node);
+		}
+		break;
+		case impl::MB_HEADER:{
+			auto* node = (impl::MBHeader*)_node;
+			bool is_first = true;
+
+			ImGui::PushID((size_t)node);
+			bool stat = ImGui::CollapsingHeader("", ImGuiTreeNodeFlags_DefaultOpen);
+			for (auto* n: node->nodes) {
+				if (is_first) {
+					ImGui::SameLine();
+					DONODE(n);
+					if (!stat) break;
+				} else DONODE(n);
+				is_first = false;
+			}
+			ImGui::PopID();
+		}
+		break;
+		case impl::MB_HLINE:{
+			auto* node = (impl::MBHLine*)_node;
+			ImGui::Separator();
+		}
+		break;
+		case impl::MB_CODE:{
+			auto* node = (impl::MBCode*)_node;
+			ImGui::PushID((size_t)node);
+			std::string tmp = {node->text.data(), node->text.size()};
+			auto *font = ImGui::GetFont();
+			ImVec2 size = font->CalcTextSizeA(font->FontSize, ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().x, tmp.c_str());
+			size.x += 10; size.y += 8;
+			ImGui::InputTextMultiline("", tmp.data(), tmp.length(), size, ImGuiInputTextFlags_ReadOnly);
+			ImGui::PopID();
+		}
+		break;
+		case impl::MB_HTML:{
+			auto* node = (impl::MBHTML*)_node;
+			render_text(node->text, x);
+			ImGui::NewLine();
+		}
+		break;
+		case impl::MB_TEXT:{
+			auto* node = (impl::MBText*)_node;
+			DOALL(node);
+		}
+		break;
+		case impl::MS_ITALIC:{
+			auto* node = (impl::MSItalic*)_node;
+			ImGui::PushFont(custom_fonts[2]);
+			DOALL(node);
+			ImGui::PopFont();
+		}
+		break;
+		case impl::MS_BOLD:{
+			auto* node = (impl::MSBold*)_node;
+			ImGui::PushFont(custom_fonts[1]);
+			DOALL(node);
+			ImGui::PopFont();
+		}
+		break;
+		case impl::MS_STRIKE:{
+			auto* node = (impl::MSStrike*)_node;
+			x.is_strikethrough = true;
+			DOALL(node); // ingore
+			x.is_strikethrough = false;
+		}
+		break;
+		case impl::MS_UNDERLINE:{
+			auto* node = (impl::MSUnderline*)_node;
+			x.is_underline = true;
+			DOALL(node); // ignore
+			x.is_underline = false;
+		}
+		break;
+		case impl::MS_CODE:{
+			auto* node = (impl::MSCode*)_node;
+
+		}
+		break;
+		case impl::MS_LINK:{
+			auto* node = (impl::MSLink*)_node;
+			x.url = node->url;
+			x.title = node->title;
+			render_text(node->title, x);
+			x.title = {};
+			x.url = {};
+		}
+		break;
+		case impl::MS_IMAGE:{
+			auto* node = (impl::MSImage*)_node;
+
+		}
+		break;
+		case impl::MT_NULLCHAR:{
+			auto* node = (impl::MTNullChar*)_node;
+			render_text("\\0", x);
+		}
+		break;
+		case impl::MT_DATA:{
+			auto* node = (impl::MTData*)_node;
+			render_text(node->data, x);
+		}
+		break;
+		case impl::MT_BRK:{
+			auto* node = (impl::MTBrk*)_node;
+			ImGui::NewLine();
+		}
+		break;
+		case impl::MT_CODE:{
+			auto* node = (impl::MTCode*)_node;
+		}
+		break;
+		case impl::MT_HTML:{
+			auto* node = (impl::MTHTML*)_node;
+			render_text(node->data, x);
+		}
+		break;
+		//case impl::MI_BASE_:
+		default:
+			LOG_FATAL("corrupted tree! invalid node type");
+		break;
+	};
+	#undef DOALL
+	#undef DONODE
+}
+
+void impl::MarkdownTree::draw(const char* name) {
+	if (ImGui::BeginTabItem(name)) {
+		if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, 0)) {
+			// here we go
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0 ,0));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0 ,0));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0 ,2));
+			auto x = r_ctx();
+			drawNode(root, x);
+			ImGui::PopStyleVar(3);
+		}
+		ImGui::EndChild();
+		ImGui::EndTabItem();
+	}
 }
 
 };	// namespace ImGui
@@ -684,17 +1001,6 @@ void imgui_md::BLOCK_H(const MD_BLOCK_H_DETAIL* d, bool e)
 	}
 }
 
-int print(const char* str, const char* str_end)
-{
-	if (str >= str_end)return 0;
-	m_quote_deep = 0;
-	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0 ,0));
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0 ,0));
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0 ,2));
-	int v = md_parse(str, (MD_SIZE)(str_end - str), &m_md, this);
-	ImGui::PopStyleVar(3);
-	return v;
-}
 
 namespace ImGui{
 	extern ImFont* custom_fonts[];

@@ -37,13 +37,7 @@ static struct HelpManager {
 		ImGui::MarkdownTree tree;
 
 		void draw() {
-			if (ImGui::BeginTabItem(name.c_str())) {
-				if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, 0)) {
-					tree.draw(name.c_str());
-				}
-				ImGui::EndChild();
-				ImGui::EndTabItem();
-			}
+			tree.draw(name.c_str());
 		}
 	};
 	public:

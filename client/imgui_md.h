@@ -265,6 +265,7 @@ class MarkdownTree {
 	destruction_node* destr_list = nullptr; // nodes to destroy
 	destruction_node* destr_curr = nullptr; // most recent destruction node
 	public:
+	impl::MarkdownItem* root = nullptr;
 
 	MarkdownTree() = default;
 	MarkdownTree(const MarkdownTree&) = delete;
@@ -277,7 +278,9 @@ class MarkdownTree {
 		src.destr_curr = nullptr;
 		destr_list = src.destr_list;
 		src.destr_list = nullptr;
-		str_copy = src.str_copy;
+		str_copy = std::move(src.str_copy);
+		root = src.root;
+		src.root = nullptr;
 	}
 
 	void* allocate_raw(size_t size);
