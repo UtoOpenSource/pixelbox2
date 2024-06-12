@@ -38,6 +38,7 @@ namespace impl {
 
 void* MarkdownTree::allocate_raw(size_t size) {
 	if (size == 0) return nullptr;
+	if (size % 8 != 0) size = ((size + 8) / 8) * 8;
 	if (bump_cap < bump_pos + size) {	// oh no
 		if (!bump_cap)
 			bump_cap = 512;
@@ -336,7 +337,7 @@ int MarkdownParser::proc_block(MD_BLOCKTYPE t, void* detail) {
 
 int MarkdownParser::proc_block_end(MD_BLOCKTYPE t, void* detail) {
 	// Header-specific exception
-	if (top() && top()->get_type() == MB_HEADER) {
+	if (t == MD_BLOCK_H) {
 		if (top()->get_type() != MB_TEXT) LOG_FATAL("stack top is NOT header text");
 		// combine all captions into tmp strng
 		// TODO
@@ -346,7 +347,12 @@ int MarkdownParser::proc_block_end(MD_BLOCKTYPE t, void* detail) {
 	}
 
 	// hr specific exception
-	if (top() && top()->get_type() == MB_HLINE) {
+	if (t == MD_BLOCK_HR) {
+		return 0; // do not pop anything - we don't even push it
+	}
+
+	// table bloxck-specific
+	if (t == MD_BLOCK_THEAD || t == MD_BLOCK_TBODY || t == MD_BLOCK_TR) {
 		return 0; // do not pop anything - we don't even push it
 	}
 
@@ -514,7 +520,8 @@ void MarkdownParser::insert(impl::MarkdownItem* i) {
 	if (!top()->is_container() && i->is_block()) 
 		LOG_FATAL("attempt to insert block into non-block item");
 
-	if (!(top()->is_span() || top()->get_type() == MB_TEXT) && i->is_text_data()) { 
+	if (!(top()->is_span() || top()->get_type() == MB_TEXT 
+	|| top()->get_type() == MB_LITEM || top()->get_type() == MB_ROW) && i->is_text_data()) { 
 		dump_stack();
 		LOG_FATAL("Attempt to insert text data into non-span item");
 	}

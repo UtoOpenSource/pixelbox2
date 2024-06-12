@@ -137,7 +137,8 @@ struct MarkdownItem { // base type
 		return get_type() >= MB_DOCUMENT && get_type() <= MB_TEXT;
 	}
 	inline bool is_container() { // subset of blocks
-		return get_type() >= MB_DOCUMENT && get_type() <= MB_HEADER;
+		return get_type() == MB_TEXT ||
+			(get_type() >= MB_DOCUMENT && get_type() <= MB_HEADER);
 	}
 	inline bool is_span() {
 		return get_type() >= MS_ITALIC && get_type() <= MS_IMAGE;
@@ -200,7 +201,7 @@ struct MBHeader : public MDAuto<MarkdownGroup, MB_HEADER> {
 };
 
 struct MBHLine : public MDAuto<MarkdownItem, MB_HLINE> {};
-struct MBCode : public MDAuto<MarkdownItem, MB_HEADER> {
+struct MBCode : public MDAuto<MarkdownItem, MB_CODE> {
 	std::string_view caption;	 // quote or php, js, etc.
 	std::string_view text;		 // code text
 };
