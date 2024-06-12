@@ -10,11 +10,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 #add_definitions("")
 include_directories(${PROJECT_SOURCE_DIR})
-add_link_options(-fsanitize=undefined -fsanitize=address)
-add_compile_options(-fsanitize=undefined -fsanitize=address -Og -g -Wall -Wextra)
+add_link_options(-fsanitize=undefined -fsanitize=address -g)
+add_compile_options(-fsanitize=undefined -fsanitize=address -Og -g -Wall -Wextra -fno-omit-frame-pointer)
 
-
-# SDL 
+# SDL
 find_package(SDL2 REQUIRED)
 add_library(libSDL INTERFACE)
 include_directories(libSDL ${SDL2_INCLUDE_DIRS})

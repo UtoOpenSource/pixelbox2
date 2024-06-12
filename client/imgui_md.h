@@ -1,9 +1,9 @@
 /*
  * imgui_md_stateful: Stateful Markdown for Dear ImGui using MD4C
- * (http://https://github.com/mekhontsev/imgui_md)
+ * (http://https://github.com/mekhontsev/imgui_md) TODO FIX LINK
  *
  * Copyright (c) 2021 Dmitry Mekhontsev
- * COpyright (C) 2024 UtoiECat 
+ * COpyright (C) 2024 UtoECat 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -46,47 +46,87 @@ class MarkdownParser;
 namespace impl {
 
 enum MarkdownItemType {
-	MI_GROUP_ = -1, // virtual. group tree node, has array of BLOCKS.
 	MI_BASE_  = 0, // must not exist!! above one too!
 
 	// BLOCK NODE CONTAINERS
-	MI_DOCUMENT = 1, // first node awailable (root node)
-	MI_QUOTE, // quote container.
+	// they are pushd onto stack and inserted into each other
 
-	MI_ULIST, // unordered list. contains LITEM blocks
-	MI_OLIST, // ordered list. contains LITEM blocks
+	/// MD_BLOCK_DOC
+	MB_DOCUMENT = 1, // first node awailable (root node)
 
-	MI_HEADER, // header. in cnntrast to other markdown viewers, headers are collapseable here. (So they contain all child elments inside)
+	/// MD_BLOCK_QUOTE
+	MB_QUOTE, // quote container
 
-	MI_TABLE, // a complex beast. Contains refs on Column names AND all the rows.
+	/// MD_BLOCK_UL
+	MB_ULIST, // unordered list. contains LITEM blocks
 
-	// unilitary items
-	MI_LITEM, // LIST ITEM.
-	MI_ROW, // individual table ROW. all the rows are in one array
+	/// MD_BLOCK_OL
+	MB_OLIST, // ordered list. contains LITEM blocks
 
-	// LEAF NODES
-	MI_SPAN, // Leaf node - array of SPAN nodes. Text and everythiing. MD_BLOCK_P
-	MI_HLINE, // horisontal line. Leaf node. BLOCK_HR
-	MI_CODE, // big Source code block. Leaf node
-	MI_HTML, // rawdog html. render as text, but mode stupidly and straightforwardly
+	/// MD_BLOCK_TABLE MD_BLOCK_THEAD MD_BLOCK_TBODY
+	MB_TABLE, // a complex beast. Contains refs on Column names AND all the rows.
 
-	MI_BRK, // newline
+	//
+	// Content Blocks - List Item and Table ROW
+	// Table row is also used as a column - they are the same in markdown anyway :p
 
-	// SPAN TYPES. have no child nodes at all
-	MS_REGULAR=30, // regular text
-	MS_BOLD,       // bold text SPAN_STRONG
-	MS_ITALIC,     // italic text SPAN_EM
-	MS_UNDERLINE,  // underline text
-	MS_STRIKE,     // text is ~deleted~ or striketrough
-	MS_CODE,       // oneliner code in ` `
-	MS_LINK,       // link (local, to file or into internet)
-	MS_IMAGE,      // yep
+	/// MD_BLOCK_LI
+	MB_LITEM, // LIST ITEM.
+
+	/// MD_BLOCK_TR MD_BLOCK_TH MD_BLOCK_TD
+	MB_ROW, // individual table ROW. all the rows are in one array
+
+	//
+	// Headers and Horisontal Line
+	// Horisontal line contain nothing, but it stops all headers
+	// Header stop another if level of the new header is less or same
+
+	/// MD_BLOCK_H
+	MB_HEADER, // header. HAS TWO ARRAYS :skull: . one for header, second for content
+
+	/// MD_BLOCK_HR
+	MB_HLINE, // horisontal line. 
+
+	///
+	// Block of code and block of HTML. SElf-contain string data, have no childs :)
+	///
+
+	/// MD_BLOCK_CODE
+	MB_CODE,
+
+	/// MD_BLOCK_HTML
+	MB_HTML,
+
+	///
+	// EXPLICIT TEXT BLOCK!
+	///
+
+	/// MD_BLOCK_P
+	MB_TEXT,
+
+	// SPAN BLOCKS, can't contain BLOCK nodes
+	// they are pushed onto stack :)
+	MS_ITALIC = 20, // ITALIC MD_SPAN_EM
+	MS_BOLD,        // BOLD MD_SPAN_STRONG
+	MS_STRIKE,      // STRIKETROUGH OR MD_SPAN_DEL
+	MS_UNDERLINE,   // MS_SPAN_U
+	MS_CODE,        // STYLE SMALL INLINE CODE
+	MS_LINK,        // URL or local link
+	MS_IMAGE,       // IMAGE
+
+	// TEXT BLOCKS. have no child nodes?
+	// They are not pushed on the stack, but appended to current block on the stack
+	MT_NULLCHAR = 30, // NULL CHARACTER
+	MT_DATA,          // just a text data
+	MT_BRK,           // newline
+	MT_CODE,          // TEXT code inside INLINED code block (in multiline it is already combined)
+	MT_HTML           // INLINE HTML
 };
 
 struct MarkdownItem { // base type
 	unsigned char type_comb; // different item types + flags
 	public:
-	inline enum MarkdownItemType get_type() {return (MarkdownItemType)(type_comb & 15);} // 4 bits
+	inline enum MarkdownItemType get_type() {return (MarkdownItemType)(type_comb);}
 	MarkdownItem(MarkdownItemType t) : type_comb(t) {
 		if (t <= MI_BASE_) {
 			auto view = magic_enum::enum_name(t);
@@ -94,7 +134,16 @@ struct MarkdownItem { // base type
 		}
 	}
 	inline bool is_block() {
-
+		return get_type() >= MB_DOCUMENT && get_type() <= MB_TEXT;
+	}
+	inline bool is_container() { // subset of blocks
+		return get_type() >= MB_DOCUMENT && get_type() <= MB_HEADER;
+	}
+	inline bool is_span() {
+		return get_type() >= MS_ITALIC && get_type() <= MS_IMAGE;
+	}
+	inline bool is_text_data() {
+		return get_type() >= MT_NULLCHAR && get_type() <= MT_HTML;
 	}
 	MarkdownItem() = delete;
 	MarkdownItem(const MarkdownItem&) = default;
@@ -103,95 +152,99 @@ struct MarkdownItem { // base type
 using MarkdownItems = std::vector<MarkdownItem*>;
 
 struct MarkdownGroup : public MarkdownItem {
-	MarkdownGroup(MarkdownItemType t = MI_GROUP_) : MarkdownItem(t) {}
+	MarkdownGroup(MarkdownItemType t) : MarkdownItem(t) {}
 	MarkdownItems nodes; // child nodes, each of them allocated on bump heap 
 };
 
-struct MarkdownDocument: public MarkdownGroup {
-	MarkdownDocument() : MarkdownGroup(MI_DOCUMENT) {}
-	MarkdownItems nodes; // child nodes, each of them allocated on bump heap 
+template <typename T, enum MarkdownItemType type>
+struct MDAuto : public T {
+	MDAuto() : T(type) {}
 };
+
+struct MBDocument: public MDAuto<MarkdownGroup, MB_DOCUMENT> {};
 
 //
 // items
 //
 
-// quote has no extra stuff
-struct MarkdownQuote: public MarkdownGroup {
-	MarkdownQuote() : MarkdownGroup(MI_QUOTE) {}
+struct MBQuote: public MDAuto<MarkdownGroup, MB_QUOTE> {
+	bool is_open = true;
+};
+struct MBUList: public MDAuto<MarkdownGroup, MB_ULIST> {
+	char mark = '*';
 };
 
-// lists too
-struct MarkdownUnorderedList: public MarkdownGroup {
-	MarkdownUnorderedList() : MarkdownGroup(MI_ULIST) {}
-};
-struct MarkdownOrderedList: public MarkdownGroup {
-	MarkdownOrderedList() : MarkdownGroup(MI_OLIST) {}
+struct MBOList: public MDAuto<MarkdownGroup, MB_OLIST> {
+	char mark = '*';
+	int start_index = 0;
 };
 
-struct MarkdownListItem: public MarkdownGroup {
-	MarkdownListItem() : MarkdownGroup(MI_LITEM) {}
+struct MBTable: public MDAuto<MarkdownGroup, MB_TABLE> {
+	int columns = 0;
+	int rows = 0; // including header, total items = rows * columns == nodes.size()
 };
 
-struct MarkdownHead : public MarkdownGroup {
-	MarkdownHead() : MarkdownGroup(MI_HEADER) {}
-	unsigned char level;					 // header level
-	std::string_view raw_caption;	 // raw text for search
+struct MBListItem: public MDAuto<MarkdownGroup, MB_LITEM> {
+	char mark = '\0'; // nonzero for task list
 };
 
-struct MarkdownTable : public MarkdownGroup {
-
+struct MBTableRow: public MDAuto<MarkdownGroup, MB_ROW> {
+	int alignment = 0; // row content alignment
 };
 
-// leaf node
-struct MarkdownCode : public MarkdownItem {
-	MarkdownCode() : MarkdownItem(MI_CODE) {}
+/// first TEXT BLOCK inside is threated as title
+struct MBHeader : public MDAuto<MarkdownGroup, MB_HEADER> {
+	int level = 0; // level of header
+	bool is_open = true;
+	std::string_view raw_title; // for search
+};
+
+struct MBHLine : public MDAuto<MarkdownItem, MB_HLINE> {};
+struct MBCode : public MDAuto<MarkdownItem, MB_HEADER> {
 	std::string_view caption;	 // quote or php, js, etc.
 	std::string_view text;		 // code text
 };
 
-// leaf node
-struct MarkdownBrk : public MarkdownItem {
-	MarkdownBrk() : MarkdownItem(MI_BRK) {}
-	int count;	// count of newlines
+struct MBHTML : public MDAuto<MarkdownItem, MB_HTML> {
+	std::string_view text; // html
 };
 
-
-// separate guys
-
-// MS_REGULAR .. MS_STRIKE + MS_CODE
-struct MarkdownSpan : public MarkdownItem { // all of them have text
-	MarkdownSpan(enum MarkdownItemType t) : MarkdownItem(t) {
-		if (t <= MS_REGULAR) {
-			auto view = magic_enum::enum_name(t);
-			LOG_FATAL("assertion! Bad MarkdownSpan %.*s", int(view.size()), view.data());
-		}
-	}
-	std::string_view text;
+struct MBText : public MDAuto<MarkdownGroup, MB_TEXT> {
+	std::string_view text; // html
 };
 
-struct MSRegular : public MarkdownItem {MSRegular() : MarkdownItem(MS_REGULAR) {}; };
-struct MSBold : public MarkdownItem {MSBold() : MarkdownItem(MS_BOLD) {}; };
-struct MSItalic : public MarkdownItem {MSItalic() : MarkdownItem(MS_ITALIC) {}; };
-struct MSUnderline : public MarkdownItem {MSUnderline() : MarkdownItem(MS_UNDERLINE) {}; };
-struct MSStrike : public MarkdownItem {MSStrike() : MarkdownItem(MS_STRIKE) {}; };
-struct MSCode : public MarkdownItem {MSCode() : MarkdownItem(MS_CODE) {}; };
-
-struct MSLink : public MarkdownSpan { // all of them have text
-	// text is visible link name
+struct MSItalic : public MDAuto<MarkdownGroup, MS_ITALIC> {};
+struct MSBold : public MDAuto<MarkdownGroup, MS_BOLD> {};
+struct MSStrike : public MDAuto<MarkdownGroup, MS_STRIKE> {};
+struct MSUnderline : public MDAuto<MarkdownGroup, MS_UNDERLINE> {};
+struct MSCode : public MDAuto<MarkdownGroup, MS_CODE> {};
+struct MSLink : public MDAuto<MarkdownGroup, MS_LINK> {
 	std::string_view title; // website tooltip desc (after URL)
 	std::string_view url;
 };
 
-struct MSImage : public MarkdownSpan { // all of them have text
-	// text is visible image name
-	std::string_view title; // image tooltip desc (after URL)
-	std::string_view url; // image URL
-
-	void* udata; // image handle to draw?
+struct MSImage : public MDAuto<MarkdownGroup, MS_IMAGE> {
+	std::string_view title; // website tooltip desc (after URL)
+	std::string_view url;
+	void* userdata;
 };
 
+struct MTNullChar : public MDAuto<MarkdownItem, MT_NULLCHAR> {};
+struct MTData : public MDAuto<MarkdownItem, MT_DATA> {
+	std::string_view data;
 };
+struct MTBrk : public MDAuto<MarkdownItem, MT_BRK> {};
+struct MTCode : public MDAuto<MarkdownItem, MT_CODE> {
+	std::string_view data;
+};
+struct MTHTML : public MDAuto<MarkdownItem, MT_HTML> {
+	std::string_view data;
+};
+
+//
+// PARSER IS PRIVATE NOW!
+//
+class MarkdownParser;
 
 // Parsed Tree state
 class MarkdownTree {
@@ -218,25 +271,26 @@ class MarkdownTree {
 	T* allocate_obj() {
 		void *data = allocate_raw(sizeof(T));
 		if constexpr (std::is_trivially_destructible_v<T>) { // trivial - omit adding node
-			return std::construct_at<T>(data);
+			return std::construct_at<T>((T*)data);
 		}
 
 		// nontrivial - add node
 		struct dn : public destruction_node {
 			virtual void destroy() override {
-				std::destroy_at<T>(ptr);
+				std::destroy_at<T>((T*)ptr);
 			}
 		};
 
 		static_assert(sizeof(destruction_node) == sizeof(dn), "oh no, something is wrong with your compiler");
 
 		// allocate destruction node
-		struct dn* node = (struct dn*)allocate_raw(sizeof(dn));
-		std::construct_at<dn>(node); // construct properly
-		node->ptr = data;
+			struct dn* node = (struct dn*)allocate_raw(sizeof(dn));
+			if (!node) LOG_FATAL("can't allocate node?");
+			node = std::construct_at<dn>(node); // construct properly
 
 		//construct object
-		std::construct_at<T>(data);
+		data = std::construct_at<T>((T*)data);
+		node->ptr = data;
 
 		node->next = nullptr; // we are tail
 		if (!destr_list) destr_list = node; // is first item in the list?
@@ -244,7 +298,7 @@ class MarkdownTree {
 		destr_curr = node; // insert to tail
 
 		// return
-		return data;
+		return (T*)data;
 	}
 
 	void clear();
@@ -254,39 +308,14 @@ class MarkdownTree {
 	}
 
 	protected:
-	impl::MarkdownDocument root;
-	std::vector<impl::MarkdownItem*> stack; // current tree
 	std::string str_copy; // may be unset. DO NOT CHANGE! THREAT AS CONST!
-	void push(impl::MarkdownItem*, bool insert=true);
-	impl::MarkdownItem* top();
-	void pop();
 	public:
-
 	void draw(const char* name); // draw markdown tree
 };
 
-class MarkdownParser {
-	public:
-	MarkdownTree* tree;
-	std::string_view str;
-
-	MarkdownParser(MarkdownTree& t, std::string_view md_text, bool copy=true) {
-		tree = &t;
-		if (copy) {
-			tree->str_copy = md_text;
-			(void) tree->str_copy.c_str(); // trigger container
-			str = tree->str_copy;
-		} else {
-			t.str_copy.clear();
-			str = md_text; // user guarantees that string will live forever
-		}
-	}
-
-	bool parse(); // hehe
-	virtual ~MarkdownParser() {};
-	protected:
-	void init_parser();
-	MD_PARSER impl;
 };
+
+using MarkdownTree = impl::MarkdownTree;
+bool parseMarkdown(MarkdownTree& tree, std::string_view md_text);
 
 };

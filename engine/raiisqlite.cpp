@@ -180,10 +180,10 @@ DatabaseError Backup::iterate(int n_pages) noexcept {
 void Database::close() noexcept {
 	if (db && own_handle) {
 		sqlite3_close_v2(db); // NEW : do not close unowned handles
-		LOG_DEBUG("DATABASE CLOSED!!!!!1 %p", db);
+		//LOG_DEBUG("DATABASE CLOSED!!!!!1 %p", db);
 	}
 	if (!own_handle && db) {
-		LOG_DEBUG("DATABASE WAS NOT CLOSED %p %i", db, own_handle);
+		//LOG_DEBUG("DATABASE WAS NOT CLOSED %p %i", db, own_handle);
 	}
 	db = nullptr;
 }
@@ -191,14 +191,14 @@ void Database::close() noexcept {
 void Database::from_raw(sqlite3* h, bool manage) {
 	close();
 	db = h; own_handle = manage;
-	LOG_DEBUG("DATAABSE CREATED FROM RAW!!! %i %p", manage, db);
+	//LOG_DEBUG("DATAABSE CREATED FROM RAW!!! %i %p", manage, db);
 }
 
 DatabaseError Database::raw_open(const char *url, int flags) noexcept{
 	close();
 	int e = sqlite3_open_v2(url, &db, flags, nullptr);
 	own_handle = true; // we need to close it!
-	LOG_DEBUG("DATAABSE OPENED! %i %p", own_handle, db);
+	//LOG_DEBUG("DATAABSE OPENED! %i %p", own_handle, db);
 	return e;
 }
 

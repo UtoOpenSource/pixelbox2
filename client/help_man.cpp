@@ -62,8 +62,7 @@ static Register r2([](int) {
 			buffer << f.rdbuf();
 			auto& v = man.tabs.emplace_back(HelpManager::HelpTab{.name=entry.path().filename(), .is_closed=false, .content=buffer.str(), .tree={}});
 			v = man.tabs.back();
-			ImGui::MarkdownParser parser(v.tree, v.content, false);
-			//parser.parse(); // yuppi
+			ImGui::parseMarkdown(v.tree, v.content); // yupee
 			buffer = {};
 		}
 		loaded=true;
