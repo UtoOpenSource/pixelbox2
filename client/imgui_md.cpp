@@ -854,9 +854,7 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 				ImGui::PushID((size_t)node);
 
 				for (int index = 0; index < node->columns; index++) {
-					auto* n = node->nodes[index];
-					//char tmp[33];
-					//snprintf_(tmp, 32, "r%i", index);
+					//auto* n = node->nodes[index];
 					ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
 				}
 				ImGui::TableHeadersRow();
@@ -867,13 +865,13 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 					x.row_id = index;
 					if (index < node->columns) {
 						ImGui::TableSetColumnIndex(index);
-						//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+						ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 						DONODE(n);
-						//ImGui::PopStyleVar();
-						ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-						char tmp[33];
-						snprintf_(tmp, 32, "r%i", index);
+						ImGui::SameLine();
+						char tmp[33] = "\0";
+						snprintf_(tmp, 32, "##r%i", index);
 						ImGui::TableHeader(tmp);
+						ImGui::PopStyleVar();
 					} else {
 							if (index % node->columns == 0) ImGui::TableNextRow();
 							ImGui::TableNextColumn();
@@ -921,30 +919,23 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			auto* node = (impl::MBCode*)_node;
 			ImGui::PushID((size_t)node);
 			std::string tmp = {node->text.data(), node->text.size()};
-			auto* font = ImGui::GetFont();
-			const float scale = ImGui::GetIO().FontGlobalScale;
-
-			ImVec2 size = font->CalcTextSizeA((font->FontSize+1) * scale, 
-				ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x, 
-				tmp.c_str());
-			
-			size.x += 10;
-			size.y += 8;
+			bool show_code=true;
 
 			// with description now
 			if (node->caption.size() > 0) {
-					std::string lang = {node->caption.data(), node->caption.size()};
-				if (ImGui::TreeNodeEx(lang.c_str(), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
-					PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
-					ImGui::InputTextMultiline("", tmp.data(), tmp.length(), size, ImGuiInputTextFlags_ReadOnly);
-					PopStyleColor();
-				}
-			} else { // nodesc
-				ImGui::InputTextMultiline("", tmp.data(), tmp.length(), size, ImGuiInputTextFlags_ReadOnly);
+				std::string lang = {node->caption.data(), node->caption.size()};
+				show_code = !ImGui::TreeNodeEx(lang.c_str(), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+			}
+
+			if (show_code) {
+				PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 0.7f, 1.0f));
+				ImGui::InputTextMultiline("", tmp.data(), tmp.length(), ImVec2{0, 0}, ImGuiInputTextFlags_ReadOnly);
+				PopStyleColor();
 			}
 
 			ImGui::PopID();
 		} break;
+
 		case impl::MB_HTML: {
 			auto* node = (impl::MBHTML*)_node;
 			render_text(node->text, x);
