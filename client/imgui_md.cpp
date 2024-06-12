@@ -25,6 +25,7 @@
 
 #include "imgui_md.h"
 
+#include <cstdio>
 #include <string>
 #include <string_view>
 
@@ -699,6 +700,7 @@ struct r_ctx {
 	char list_char = ' ';
 	int list_index = -1;
 	bool text_drawn = false;
+	int row_id = -1; // for row drawing
 };
 
 static void open_url(std::string_view url, r_ctx& x) {}
@@ -716,8 +718,14 @@ static void render_text(std::string_view data, r_ctx& x) {
 	while (str < str_end) {
 		const char* te = str_end;
 		float wl = ImGui::GetContentRegionAvail().x;
+		bool pop_color = false;
 
 		te = ImGui::GetFont()->CalcWordWrapPositionA(scale, str, str_end, wl);
+
+		if (!x.url.empty()) {
+			PushStyleColor(ImGuiCol_Text, s.Colors[ImGuiCol_ButtonHovered]);
+			pop_color = true;
+		}
 
 		if (te == str) ++te;
 		ImGui::TextUnformatted(str, te);
@@ -725,6 +733,8 @@ static void render_text(std::string_view data, r_ctx& x) {
 		if (te > str && *(te - 1) == '\n') {
 			is_lf = true;
 		}
+		
+		if (pop_color) PopStyleColor();
 
 		if (!x.url.empty()) {
 			ImVec4 c;
@@ -787,7 +797,9 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			auto* node = (impl::MBQuote*)_node;
 			ImGui::PushID((size_t)node);
 			if (ImGui::TreeNodeEx("quote", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
+				PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
 				DOALL(node);
+				PopStyleColor();
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
@@ -816,10 +828,6 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			x.list_char = ' ';
 			ImGui::PopID();
 		} break;
-		case impl::MB_TABLE: {
-			auto* node = (impl::MBTable*)_node;
-
-		} break;
 		case impl::MB_LITEM: {
 			auto* node = (impl::MBListItem*)_node;
 			if (x.list_char > ' ') {
@@ -836,20 +844,64 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 				DOALL(node);
 			}
 		} break;
+
+		// TABLES
+		case impl::MB_TABLE: {
+			auto* node = (impl::MBTable*)_node;
+			int flags = ImGuiTableFlags_Borders | ImGuiTableFlags_Reorderable | 
+			ImGuiTableFlags_Hideable | ImGuiTableFlags_Resizable;
+			if (ImGui::BeginTable("mdtable", node->columns, flags)) {
+				ImGui::PushID((size_t)node);
+
+				for (int index = 0; index < node->columns; index++) {
+					auto* n = node->nodes[index];
+					//char tmp[33];
+					//snprintf_(tmp, 32, "r%i", index);
+					ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
+				}
+				ImGui::TableHeadersRow();
+
+				// column header rows
+				for (int index = 0; index < int(node->nodes.size()); index++) {
+					auto* n = (impl::MBTableRow*)node->nodes[index];
+					x.row_id = index;
+					if (index < node->columns) {
+						ImGui::TableSetColumnIndex(index);
+						//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+						DONODE(n);
+						//ImGui::PopStyleVar();
+						ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+						char tmp[33];
+						snprintf_(tmp, 32, "r%i", index);
+						ImGui::TableHeader(tmp);
+					} else {
+							if (index % node->columns == 0) ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							DONODE(n);
+					}
+				}
+
+				x.row_id = -1;
+				ImGui::PopID();
+				ImGui::EndTable();
+			}
+		} break;
 		case impl::MB_ROW: {
 			auto* node = (impl::MBTableRow*)_node;
-			// DOALL(node);
+			ImGui::PushID((size_t)node);
+			DOALL(node);
+			ImGui::PopID();
 		} break;
+
 		case impl::MB_HEADER: {
 			auto* node = (impl::MBHeader*)_node;
 			bool is_first = true;
 
 			ImGui::PushID((size_t)node);
-			bool stat = ImGui::CollapsingHeader("", ImGuiTreeNodeFlags_DefaultOpen);
+			bool stat = ImGui::TreeNodeEx("", ImGuiTreeNodeFlags_DefaultOpen |
+			 ImGuiTreeNodeFlags_NoTreePushOnOpen, "%s ", std::string(node->level, '#').c_str());
 			for (auto* n : node->nodes) {
 				if (is_first) {
-					ImGui::SameLine();
-					ImGui::Text("%s", std::string(node->level, ' ').c_str());
 					ImGui::SameLine();
 					DONODE(n);
 					if (!stat) break;
@@ -863,21 +915,39 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			auto* node = (impl::MBHLine*)_node;
 			ImGui::Separator();
 		} break;
+
+		// CODE
 		case impl::MB_CODE: {
 			auto* node = (impl::MBCode*)_node;
 			ImGui::PushID((size_t)node);
 			std::string tmp = {node->text.data(), node->text.size()};
 			auto* font = ImGui::GetFont();
-			ImVec2 size = font->CalcTextSizeA(font->FontSize, ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().x, tmp.c_str());
+			const float scale = ImGui::GetIO().FontGlobalScale;
+
+			ImVec2 size = font->CalcTextSizeA((font->FontSize+1) * scale, 
+				ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x, 
+				tmp.c_str());
+			
 			size.x += 10;
 			size.y += 8;
-			ImGui::InputTextMultiline("", tmp.data(), tmp.length(), size, ImGuiInputTextFlags_ReadOnly);
+
+			// with description now
+			if (node->caption.size() > 0) {
+					std::string lang = {node->caption.data(), node->caption.size()};
+				if (ImGui::TreeNodeEx(lang.c_str(), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoTreePushOnOpen)) {
+					PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.8f, 0.8f, 1.0f));
+					ImGui::InputTextMultiline("", tmp.data(), tmp.length(), size, ImGuiInputTextFlags_ReadOnly);
+					PopStyleColor();
+				}
+			} else { // nodesc
+				ImGui::InputTextMultiline("", tmp.data(), tmp.length(), size, ImGuiInputTextFlags_ReadOnly);
+			}
+
 			ImGui::PopID();
 		} break;
 		case impl::MB_HTML: {
 			auto* node = (impl::MBHTML*)_node;
 			render_text(node->text, x);
-			ImGui::NewLine();
 		} break;
 		case impl::MB_TEXT: {
 			auto* node = (impl::MBText*)_node;
@@ -909,14 +979,16 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 		} break;
 		case impl::MS_CODE: {
 			auto* node = (impl::MSCode*)_node;
-
+			ImGui::PushID((size_t)node);
+			DOALL(node);
+			ImGui::PopID();
 		} break;
 		case impl::MS_LINK: {
 			auto* node = (impl::MSLink*)_node;
 			x.url = node->url;
 			x.title = node->title;
 			//render_text(node->title, x);
-			DOALL(node);	// ignore
+			DOALL(node);
 			x.title = {};
 			x.url = {};
 		} break;
@@ -938,6 +1010,19 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 		} break;
 		case impl::MT_CODE: {
 			auto* node = (impl::MTCode*)_node;
+			std::string tmp = {node->data.data(), node->data.size()};
+			auto* font = ImGui::GetFont();
+			const float scale = ImGui::GetIO().FontGlobalScale;
+
+			ImVec2 size = font->CalcTextSizeA(font->FontSize * scale, 
+				ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x, 
+				tmp.c_str());
+			size.x += 8;
+			size.y += 8;
+			ImGui::PushItemWidth(size.x);
+			ImGui::InputText("", tmp.data(), tmp.length(), ImGuiInputTextFlags_ReadOnly);
+			ImGui::SameLine();
+			ImGui::PopItemWidth();
 		} break;
 		case impl::MT_HTML: {
 			auto* node = (impl::MTHTML*)_node;
@@ -954,7 +1039,7 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 
 void impl::MarkdownTree::draw(const char* name) {
 	if (ImGui::BeginTabItem(name)) {
-		if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, 0)) {
+		if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, ImGuiWindowFlags_NoSavedSettings)) {
 			// here we go
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
@@ -1013,29 +1098,6 @@ ImGuiTableFlags_Hideable))
 						}
 						ImGui::EndTable();
 				}
-
-
-void imgui_md::flush_code(const char*) {
-		ImGui::PushID((size_t)m_code_id);
-		std::string s = std::move(code_buff);
-		auto *font = ImGui::GetFont();
-		if (m_is_code) {
-			if (s.find('\n') != s.npos) {
-				ImVec2 size = font->CalcTextSizeA(font->FontSize, ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().x, s.data());
-				size.x += 10;
-				size.y += 8;
-				ImGui::InputTextMultiline("", s.data(), s.length(), size, ImGuiInputTextFlags_ReadOnly);
-			} else {
-				ImGui::PushItemWidth(font->CalcTextSizeA(font->FontSize, FLT_MAX, 0.0f, s.data()).x + 8);
-				ImGui::InputText("", s.data(), s.length(), ImGuiInputTextFlags_ReadOnly);
-				ImGui::PopItemWidth();
-			}
-		}
-		ImGui::SameLine();
-
-		ImGui::PopID();
-		//ImGui::NewLine();
-}
 
 void imgui_md::BLOCK_LI(const MD_BLOCK_LI_DETAIL*, bool e)
 {
