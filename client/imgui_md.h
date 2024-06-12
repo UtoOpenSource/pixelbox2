@@ -210,9 +210,7 @@ struct MBHTML : public MDAuto<MarkdownItem, MB_HTML> {
 	std::string_view text; // html
 };
 
-struct MBText : public MDAuto<MarkdownGroup, MB_TEXT> {
-	std::string_view text; // html
-};
+struct MBText : public MDAuto<MarkdownGroup, MB_TEXT> {};
 
 struct MSItalic : public MDAuto<MarkdownGroup, MS_ITALIC> {};
 struct MSBold : public MDAuto<MarkdownGroup, MS_BOLD> {};
