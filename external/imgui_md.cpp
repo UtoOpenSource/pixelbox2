@@ -1,8 +1,9 @@
 /*
  * imgui_md: Markdown for Dear ImGui using MD4C
- * (http://https://github.com/mekhontsev/imgui_md)
+ * (http://https://github.com/mekhontsev/imgui_md) TODO FIX LINK
  *
  * Copyright (c) 2021 Dmitry Mekhontsev
+ * Copyright (C) 2024 UtoECat 
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,6 +22,9 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
+ *
+ * This one chnges parsing process completely - text is parsed into tree, which is will be recursively rendered.
+ * This allows us to collapse elements, provide search capabilities, and etc. - good stuff
  */
 
 #include "imgui_md.h"
@@ -29,18 +33,362 @@
 #include <string>
 #include <string_view>
 
-#include "SDL_misc.h"
-#include "base.hpp"
 #include "imgui.h"
 #include "magic_enum.hpp"
 #include "md4c.h"
-#include "printf.h"
 
+#include "base.hpp"
+#ifdef LOG_DEBUG
+#define LOG_DEBUG(...) /*notjhing */
+#endif
 
 namespace ImGui {
 
 namespace impl {
 
+enum MarkdownItemType {
+	MI_BASE_  = 0, // must not exist!! above one too!
+
+	// BLOCK NODE CONTAINERS
+	// they are pushd onto stack and inserted into each other
+
+	/// MD_BLOCK_DOC
+	MB_DOCUMENT = 1, // first node awailable (root node)
+
+	/// MD_BLOCK_QUOTE
+	MB_QUOTE, // quote container
+
+	/// MD_BLOCK_UL
+	MB_ULIST, // unordered list. contains LITEM blocks
+
+	/// MD_BLOCK_OL
+	MB_OLIST, // ordered list. contains LITEM blocks
+
+	/// MD_BLOCK_TABLE MD_BLOCK_THEAD MD_BLOCK_TBODY
+	MB_TABLE, // a complex beast. Contains refs on Column names AND all the rows.
+
+	//
+	// Content Blocks - List Item and Table ROW
+	// Table row is also used as a column - they are the same in markdown anyway :p
+
+	/// MD_BLOCK_LI
+	MB_LITEM, // LIST ITEM.
+
+	/// MD_BLOCK_TR MD_BLOCK_TH MD_BLOCK_TD
+	MB_ROW, // individual table ROW. all the rows are in one array
+
+	//
+	// Headers and Horisontal Line
+	// Horisontal line contain nothing, but it stops all headers
+	// Header stop another if level of the new header is less or same
+
+	/// MD_BLOCK_H
+	MB_HEADER, // header. HAS TWO ARRAYS :skull: . one for header, second for content
+
+	/// MD_BLOCK_HR
+	MB_HLINE, // horisontal line. 
+
+	///
+	// Block of code and block of HTML. SElf-contain string data, have no childs :)
+	///
+
+	/// MD_BLOCK_CODE
+	MB_CODE,
+
+	/// MD_BLOCK_HTML
+	MB_HTML,
+
+	///
+	// EXPLICIT TEXT BLOCK!
+	///
+
+	/// MD_BLOCK_P
+	MB_TEXT,
+
+	// SPAN BLOCKS, can't contain BLOCK nodes
+	// they are pushed onto stack :)
+	MS_ITALIC = 20, // ITALIC MD_SPAN_EM
+	MS_BOLD,        // BOLD MD_SPAN_STRONG
+	MS_STRIKE,      // STRIKETROUGH OR MD_SPAN_DEL
+	MS_UNDERLINE,   // MS_SPAN_U
+	MS_CODE,        // STYLE SMALL INLINE CODE
+	MS_LINK,        // URL or local link
+	MS_IMAGE,       // IMAGE
+
+	// TEXT BLOCKS. have no child nodes?
+	// They are not pushed on the stack, but appended to current block on the stack
+	MT_NULLCHAR = 30, // NULL CHARACTER
+	MT_DATA,          // just a text data
+	MT_BRK,           // newline
+	MT_CODE,          // TEXT code inside INLINED code block (in multiline it is already combined)
+	MT_HTML           // INLINE HTML
+};
+
+struct MarkdownItem { // base type
+	unsigned char type_comb; // different item types + flags
+	public:
+	inline enum MarkdownItemType get_type() {return (MarkdownItemType)(type_comb);}
+	MarkdownItem(MarkdownItemType t) : type_comb(t) {
+		if (t <= MI_BASE_) {
+			auto view = M_ENUM_NAME(t);
+			LOG_FATAL("assertion! Bad MarkdownItem %.*s", int(view.size()), view.data());
+		}
+	}
+	inline bool is_block() {
+		return get_type() >= MB_DOCUMENT && get_type() <= MB_TEXT;
+	}
+	inline bool is_container() { // subset of blocks
+		return get_type() == MB_TEXT ||
+			(get_type() >= MB_DOCUMENT && get_type() <= MB_HEADER);
+	}
+	inline bool is_span() {
+		return get_type() >= MS_ITALIC && get_type() <= MS_IMAGE;
+	}
+	inline bool is_text_data() {
+		return get_type() >= MT_NULLCHAR && get_type() <= MT_HTML;
+	}
+	MarkdownItem() = delete;
+	MarkdownItem(const MarkdownItem&) = default;
+};
+
+using MarkdownItems = std::vector<MarkdownItem*>;
+
+struct MarkdownGroup : public MarkdownItem {
+	MarkdownGroup(MarkdownItemType t) : MarkdownItem(t) {}
+	MarkdownItems nodes; // child nodes, each of them allocated on bump heap 
+};
+
+template <typename T, enum MarkdownItemType type>
+struct MDAuto : public T {
+	MDAuto() : T(type) {}
+};
+
+struct MBDocument: public MDAuto<MarkdownGroup, MB_DOCUMENT> {};
+
+//
+// items
+//
+
+struct MBQuote: public MDAuto<MarkdownGroup, MB_QUOTE> {
+	bool is_open = true;
+};
+
+struct MBUList: public MDAuto<MarkdownGroup, MB_ULIST> {
+	char mark = '*';
+};
+
+struct MBOList: public MDAuto<MarkdownGroup, MB_OLIST> {
+	char mark = '*';
+	int start_index = 0;
+};
+
+struct MBTable: public MDAuto<MarkdownGroup, MB_TABLE> {
+	int columns = 0;
+	int rows = 0; // including header, total items = rows * columns == nodes.size()
+};
+
+struct MBListItem: public MDAuto<MarkdownGroup, MB_LITEM> {
+	char mark = '\0'; // nonzero for task list
+};
+
+struct MBTableRow: public MDAuto<MarkdownGroup, MB_ROW> {
+	int alignment = 0; // row content alignment
+};
+
+/// first TEXT BLOCK inside is threated as title
+struct MBHeader : public MDAuto<MarkdownGroup, MB_HEADER> {
+	int level = 0; // level of header
+	bool is_open = true;
+	std::string_view raw_title; // for search
+};
+
+struct MBHLine : public MDAuto<MarkdownItem, MB_HLINE> {};
+struct MBCode : public MDAuto<MarkdownItem, MB_CODE> {
+	std::string_view caption;	 // quote or php, js, etc.
+	std::string_view text;		 // code text
+};
+
+struct MBHTML : public MDAuto<MarkdownItem, MB_HTML> {
+	std::string_view text; // html
+};
+
+struct MBText : public MDAuto<MarkdownGroup, MB_TEXT> {};
+
+struct MSItalic : public MDAuto<MarkdownGroup, MS_ITALIC> {};
+struct MSBold : public MDAuto<MarkdownGroup, MS_BOLD> {};
+struct MSStrike : public MDAuto<MarkdownGroup, MS_STRIKE> {};
+struct MSUnderline : public MDAuto<MarkdownGroup, MS_UNDERLINE> {};
+struct MSCode : public MDAuto<MarkdownGroup, MS_CODE> {};
+struct MSLink : public MDAuto<MarkdownGroup, MS_LINK> {
+	std::string_view title; // website tooltip desc (after URL)
+	std::string_view url;
+};
+
+struct MSImage : public MDAuto<MarkdownGroup, MS_IMAGE> {
+	std::string_view title; // website tooltip desc (after URL)
+	std::string_view url;
+	void* userdata;
+};
+
+struct MTNullChar : public MDAuto<MarkdownItem, MT_NULLCHAR> {};
+struct MTData : public MDAuto<MarkdownItem, MT_DATA> {
+	std::string_view data;
+};
+struct MTBrk : public MDAuto<MarkdownItem, MT_BRK> {};
+struct MTCode : public MDAuto<MarkdownItem, MT_CODE> {
+	std::string_view data;
+};
+struct MTHTML : public MDAuto<MarkdownItem, MT_HTML> {
+	std::string_view data;
+};
+
+//
+// PARSER IS PRIVATE NOW!
+//
+class MarkdownParser;
+
+// AND TREE TOO!
+class MarkdownTree;
+
+static const ImFont* NULL_FONTS[MarkdownFonts::MF_MAX_FONTS] = {nullptr};
+
+// Parsed Tree state
+class MarkdownTree {
+	friend class MarkdownParser;
+	protected:
+	struct destruction_node { // 3 pointers... :/
+		public:
+		void* ptr;
+		struct destruction_node* next;
+		virtual void destroy() {};
+	};
+
+	std::vector<char*> bumps;
+	size_t bump_cap = 0; // capacity pof current bump allocator node
+	size_t bump_pos = 0; // position in current bump allocator node
+
+	destruction_node* destr_list = nullptr; // nodes to destroy
+	destruction_node* destr_curr = nullptr; // most recent destruction node
+	public:
+	// root DOCUMENT node is here if parsed succesfully
+	impl::MarkdownItem* root = nullptr;
+
+	// callback, allowed flags and userdata stuff
+	MarkdownCallback callback = nullptr;
+	void *cb_userdata = nullptr;
+	unsigned int allowed_actions = 0; // no actions allowed
+
+	// CUSTOM FONTS
+	const ImFont** fonts = NULL_FONTS;
+	size_t         fonts_cnt = 0;
+
+	// call user callback on stuff
+	inline void cb_if_allowed(MarkdownCallbackAction a, std::string_view o) {
+		if ((allowed_actions & a) && callback) { // unlikely
+			callback(a, o, cb_userdata);
+		}
+	}
+
+	MarkdownTree() = default;
+	MarkdownTree(size_t prealloc) { // create with preallocated page
+		bump_cap = prealloc;
+		char* data = (char*)calloc(1, bump_cap);
+		if (!data) throw std::bad_alloc();
+		bumps.emplace_back(data);
+		bump_pos = 0;
+	}
+
+	MarkdownTree(const MarkdownTree&) = delete;
+	MarkdownTree(MarkdownTree&& src) { // yeah, this shit is huge... it was important one day, now it's not that much
+		bumps = std::move(src.bumps);
+		bump_cap = src.bump_cap;
+		src.bump_cap = 0;
+		bump_pos = src.bump_pos;
+		destr_curr = src.destr_curr;
+		src.destr_curr = nullptr;
+		destr_list = src.destr_list;
+		src.destr_list = nullptr;
+		str_copy = std::move(src.str_copy);
+		root = src.root;
+		src.root = nullptr;
+		allowed_actions = src.allowed_actions;
+		callback = src.callback;
+		cb_userdata = src.cb_userdata;
+		src.callback = nullptr;
+		src.allowed_actions = 0;
+
+		fonts = src.fonts;
+		fonts_cnt = src.fonts_cnt;
+		src.fonts_cnt = 0; // ez
+	}
+
+	void* allocate_raw(size_t size);
+
+	/// allocate objects on a bump heap
+	/// for nontrivial objects allocate and add a destructor node in list of destruction nodes :)
+	/// this really speedups shit a lot
+	template <typename T>
+	T* allocate_obj() {
+		void *data = allocate_raw(sizeof(T));
+		if constexpr (std::is_trivially_destructible_v<T>) { // trivial - omit adding node
+			return std::construct_at<T>((T*)data);
+		}
+
+		// nontrivial - add node
+		struct dn : public destruction_node {
+			virtual void destroy() override {
+				std::destroy_at<T>((T*)ptr);
+			}
+		};
+
+		static_assert(sizeof(destruction_node) == sizeof(dn), "oh no, something is wrong with your compiler");
+
+		// allocate destruction node
+			struct dn* node = (struct dn*)allocate_raw(sizeof(dn));
+			if (!node) LOG_FATAL("can't allocate node?");
+			node = std::construct_at<dn>(node); // construct properly
+
+		//construct object
+		data = std::construct_at<T>((T*)data);
+		node->ptr = data;
+
+		// insert delete node ONLY after succesful construction. don't care about "leak"
+		node->next = nullptr; // we are tail
+		if (!destr_list) destr_list = node; // is first item in the list?
+		if (destr_curr) destr_curr->next = node;
+		destr_curr = node; // insert to tail
+
+		// return
+		return (T*)data;
+	}
+
+	void clear();
+
+	~MarkdownTree() {
+		clear();
+	}
+
+	protected:
+	std::string str_copy; // may be unset. DO NOT CHANGE! THREAT AS CONST!
+	public:
+	void draw(const char* name); // draw markdown tree
+
+	void set_fonts(const ImFont* a[], MarkdownFonts lim) {
+		if (lim > MarkdownFonts::MF_MAX_FONTS) lim = MarkdownFonts::MF_MAX_FONTS;
+
+		// set empty one
+		if (lim == 0 || a == nullptr) {
+			fonts = NULL_FONTS;
+			fonts_cnt = 0;
+			return;
+		}
+
+		fonts = a;
+		fonts_cnt = lim;
+	}
+};
+
+/// allocate any amount of memory on a bump heap. no destruction is performed afterwards
 void* MarkdownTree::allocate_raw(size_t size) {
 	if (size == 0) return nullptr;
 	if (size % 8 != 0) size = ((size + 8) / 8) * 8;
@@ -67,14 +415,14 @@ class MarkdownParser {
 	MarkdownTree* tree;
 	std::string_view str;
 
-	MarkdownParser(MarkdownTree& t, std::string_view md_text, bool copy = true) {
-		tree = &t;
+	MarkdownParser(MarkdownTree* t, std::string_view md_text, bool copy = true) {
+		tree = t;
 		if (copy) {
 			tree->str_copy = md_text;
 			(void)tree->str_copy.c_str();	 // trigger container
 			str = tree->str_copy;
 		} else {
-			t.str_copy.clear();
+			tree->str_copy.clear();
 			str = md_text;	// user guarantees that string will live forever
 		}
 	}
@@ -101,7 +449,7 @@ class MarkdownParser {
 	impl::MarkdownItem* top();
 	void pop();
 
-	void append_strings_of_node(impl::MarkdownItem* n, int level=0);
+	void append_strings_of_node(impl::MarkdownItem* n, int level = 0);
 
 	// temporary string buffers
 	std::vector<std::string> tmp_buffs;
@@ -116,16 +464,18 @@ class MarkdownParser {
 };
 
 void MarkdownParser::dump_stack() {
-	printf_("{");
+#ifdef DEBUG_MD
+	printf("{");
 	for (auto* node : stack) {
 		enum MarkdownItemType t = node->get_type();
 		auto view = magic_enum::enum_name(t);
-		printf_("%.*s, ", int(view.size()), view.data());
+		printf("%.*s, ", int(view.size()), view.data());
 	}
-	printf_("}\n");
+	printf("}\n");
+#endif
 }
 
-void ImGui::MarkdownTree::clear() {
+void ImGui::impl::MarkdownTree::clear() {
 	str_copy.clear();	 // for good measure
 
 	// destroy nontrivial objects, from the first to the last
@@ -146,25 +496,19 @@ void ImGui::MarkdownTree::clear() {
 	bump_cap = 0;	 // IMPORTANT!
 }
 
-void MarkdownParser::push_string(std::string_view v) { 
-	tmp_buffs.emplace_back(std::string{v.data(), v.size()});
-}
+void MarkdownParser::push_string(std::string_view v) { tmp_buffs.emplace_back(std::string{v.data(), v.size()}); }
 
-void MarkdownParser::append_string(std::string_view v) {
-	tmp_buffs.back() += v;
-}
+void MarkdownParser::append_string(std::string_view v) { tmp_buffs.back() += v; }
 
 std::string_view MarkdownParser::build_string() {
 	// allocated on bump heap
 	size_t size = tmp_buffs.back().size();
-	char* raw = (char*)tree->allocate_raw( size + 1);
+	char* raw = (char*)tree->allocate_raw(size + 1);
 	memcpy(raw, tmp_buffs.back().c_str(), size);
 	return {raw, size};
 }
 
-void MarkdownParser::pop_string() {
-	tmp_buffs.pop_back();
-}
+void MarkdownParser::pop_string() { tmp_buffs.pop_back(); }
 
 void MarkdownParser::init_parser() {
 	stack = {};	 // reset
@@ -374,7 +718,7 @@ int MarkdownParser::proc_block(MD_BLOCKTYPE t, void* detail) {
 
 void MarkdownParser::append_strings_of_node(impl::MarkdownItem* n, int level) {
 	if (level > 10) return;
-	switch(n->get_type()) {
+	switch (n->get_type()) {
 		case MB_DOCUMENT:
 		case MB_QUOTE:
 		case MB_ULIST:
@@ -386,41 +730,34 @@ void MarkdownParser::append_strings_of_node(impl::MarkdownItem* n, int level) {
 		case MB_HLINE:
 		case MB_CODE:
 		case MB_HTML:
-		break;
+			break;
 		case MB_TEXT: {
 			auto* node = (impl::MBText*)n;
-			for (auto* i : node->nodes)
-				append_strings_of_node(i, level+1);
-		}
-		break;
+			for (auto* i : node->nodes) append_strings_of_node(i, level + 1);
+		} break;
 		case MS_ITALIC:
 		case MS_BOLD:
 		case MS_STRIKE:
 		case MS_UNDERLINE:
-		case MS_CODE:{
+		case MS_CODE: {
 			auto* node = (impl::MSItalic*)n;
-			for (auto* i : node->nodes)
-				append_strings_of_node(i, level+1);
-		}
-		break;
+			for (auto* i : node->nodes) append_strings_of_node(i, level + 1);
+		} break;
 		case MS_LINK:
 		case MS_IMAGE:
 		case MT_NULLCHAR: {
 			append_string("\\0");
-		}
-		break;
+		} break;
 		case MT_DATA: {
 			auto* node = (impl::MTData*)n;
 			append_string(node->data);
-		}
-		break;
+		} break;
 		case MT_CODE: {
 			auto* node = (impl::MTCode*)n;
 			append_string(node->data);
-		}
-		break;
+		} break;
 		case MT_BRK:
-		case MT_HTML: 
+		case MT_HTML:
 		case MI_BASE_:
 			break;
 	}
@@ -447,9 +784,9 @@ int MarkdownParser::proc_block_end(MD_BLOCKTYPE t, void* detail) {
 		pop_string();
 	} else if (t == MD_BLOCK_CODE) {
 		auto* node = (MBCode*)top();
-		//append_string("debug string --------\n weweeewowowowo");
+		// append_string("debug string --------\n weweeewowowowo");
 		node->text = build_string();
-		//LOG_DEBUG("BUILDED STRING CODE %.*s", int(node->text.size()), node->text.data());
+		// LOG_DEBUG("BUILDED STRING CODE %.*s", int(node->text.size()), node->text.data());
 		pop_string();
 	}
 
@@ -465,7 +802,7 @@ int MarkdownParser::proc_block_end(MD_BLOCKTYPE t, void* detail) {
 
 	// close headers
 	if (t == MD_BLOCK_QUOTE) {
-		close_headers(0); // hehe
+		close_headers(0);	 // hehe
 	} else if (t == MD_BLOCK_DOC) {
 		close_headers(0);
 		tree->root = top();	 // yupee!
@@ -562,12 +899,14 @@ int MarkdownParser::proc_text(MD_TEXTTYPE t, std::string_view data) {
 		}	 // ImGui::NewLine();
 		break;
 		case MD_TEXT_SOFTBR: {
+			//auto* node = allocate_obj<MTBrk>();
+			//insert(node);
+			//break;
 			// soft_break();
 			auto* node = allocate_obj<MTData>();
-			node->data = " "; // replace with space
+			node->data = " ";	 // replace with space
 			insert(node);
-		}
-		break;
+		} break;
 		case MD_TEXT_ENTITY: {
 			// if (!render_entity(str, str_end)) {
 			//	render_text(str, str_end);
@@ -581,8 +920,8 @@ int MarkdownParser::proc_text(MD_TEXTTYPE t, std::string_view data) {
 			if (top()) {
 				// append to HTML block :)
 				if (top()->get_type() == MB_HTML) {
-					//auto* curr = (MBHTML*)top();
-					//curr->text = data;
+					// auto* curr = (MBHTML*)top();
+					// curr->text = data;
 					append_string(data);
 					break;
 				}
@@ -596,8 +935,8 @@ int MarkdownParser::proc_text(MD_TEXTTYPE t, std::string_view data) {
 			if (top()) {
 				// append to code block :)
 				if (top()->get_type() == MB_CODE) {
-					//auto* curr = (MBCode*)top();
-					//curr->text = data;
+					// auto* curr = (MBCode*)top();
+					// curr->text = data;
 					append_string(data);
 					break;
 				}
@@ -661,22 +1000,13 @@ bool MarkdownParser::parse() {
 
 };	// namespace impl
 
-bool parseMarkdown(MarkdownTree& tree, std::string_view md_text) {
-	impl::MarkdownParser p(tree, md_text, true);
-	if (p.parse()) {
-		return true;
-	}
-	tree.clear();	 // on parse errors
-	return false;
-}
-
 ///
 /// RENDERING
 ///
 
-#define MAX_LEVEL 10
+#define MAX_LEVEL 20
 
-extern ImFont* custom_fonts[];
+//extern ImFont* custom_fonts[];
 
 static void line(ImColor c, bool under) {
 	ImVec2 mi = ImGui::GetItemRectMin();
@@ -700,10 +1030,50 @@ struct r_ctx {
 	char list_char = ' ';
 	int list_index = -1;
 	bool text_drawn = false;
-	int row_id = -1; // for row drawing
+	int row_id = -1;	// for row drawing
+
+	// yea...
+	bool is_bold = false;
+	bool is_italic = false;
+
+	// for callback
+	impl::MarkdownTree* tree;
 };
 
-static void open_url(std::string_view url, r_ctx& x) {}
+// handle links
+static void open_url(std::string_view url, r_ctx& x) {
+	if (!url.size()) return; // ignore
+	if (url.data()[0] == '#') { // local-document link
+		// TODO: add search condition for header
+		return;
+	} else if (url.data()[0] == '.' || url.data()[0] == '/' || url.data()[0] == '\\') { // local path to files
+		x.tree->cb_if_allowed(MCA_FILE, url); // let user handle this :)
+		return;
+	} else if (url.data()[0] == '@' || url.data()[0] == '$' || url.data()[0] == '%' || url.data()[0] == ' ') { // seems weird : ignore
+		return;
+	} else { // it is likely a URL
+		x.tree->cb_if_allowed(MCA_URL, url); // let user handle this :)
+	}
+}
+
+static void change_font(r_ctx& x) {
+	MarkdownFonts type = MF_NORMAL;
+
+	if (x.is_bold && x.is_italic) {
+		type = MF_BOLD_ITALIC;
+	} else if (x.is_bold) {
+		type = MF_BOLD;
+	} else if (x.is_italic) {
+		type = MF_ITALIC;
+	}
+
+	// custom fonts
+	if (x.tree->fonts_cnt > type) { // font is valid to set
+		ImGui::PushFont(const_cast<ImFont*>(x.tree->fonts[type]));
+	} else { // use default font
+		ImGui::PushFont(nullptr);
+	}
+}
 
 static void render_text(std::string_view data, r_ctx& x) {
 	const char* str = data.data();
@@ -733,7 +1103,7 @@ static void render_text(std::string_view data, r_ctx& x) {
 		if (te > str && *(te - 1) == '\n') {
 			is_lf = true;
 		}
-		
+
 		if (pop_color) PopStyleColor();
 
 		if (!x.url.empty()) {
@@ -781,7 +1151,12 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 #define DOALL(node) \
 	for (auto* n : node->nodes) DONODE(n)
 
-	if (x.level > MAX_LEVEL) return;	// oh no
+	if (x.level > MAX_LEVEL) { // oh no
+		PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.1f, 0.15f, 1.0f));
+		render_text("ERROR: recursion limit is reached!", x);
+		PopStyleColor();
+		return;
+	}	
 	if (!_node) return;								// bad
 
 	if (!_node->is_text_data() && !_node->is_span()) {
@@ -804,20 +1179,22 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			}
 			ImGui::PopID();
 		} break;
-		case impl::MB_ULIST: {
+		case impl::MB_ULIST: { // fine
 			auto* node = (impl::MBUList*)_node;
 			ImGui::PushID((size_t)node);
-			for (auto* n : node->nodes) {
-				x.list_char = node->mark;
-				x.list_index = -1;
-				DONODE(n);
-			}
+				for (auto* n : node->nodes) {
+					x.list_char = node->mark;
+					x.list_index = -1;
+					DONODE(n);
+				}
 			x.list_char = ' ';
 			ImGui::PopID();
 		} break;
 		case impl::MB_OLIST: {
 			auto* node = (impl::MBOList*)_node;
 			int index = node->start_index;
+			//ImGui::Indent(ImGui::GetTreeNodeToLabelSpacing());
+
 			ImGui::PushID((size_t)node);
 			for (auto* n : node->nodes) {
 				x.list_char = node->mark;
@@ -827,34 +1204,41 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			x.list_index = -1;
 			x.list_char = ' ';
 			ImGui::PopID();
+
+			//ImGui::Unindent(ImGui::GetTreeNodeToLabelSpacing());
 		} break;
 		case impl::MB_LITEM: {
 			auto* node = (impl::MBListItem*)_node;
-			if (x.list_char > ' ') {
-				ImGui::TreePush("node");
-				if (x.list_index < 0) {
-					ImGui::Bullet();
-				} else {
-					ImGui::Text("%i. ", x.list_index);
-				}
+			char tmp[32] = {0};
+			int flags =  ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_SpanTextWidth;
+			bool take_indent_back = false;
+			float indent_w = ImGui::GetTreeNodeToLabelSpacing();
+
+			if (x.list_index < 0) { // Good
+					flags |= ImGuiTreeNodeFlags_Bullet;
+			} else {
+				ImGui::Unindent(indent_w); // to get correct view of this text :)
+				take_indent_back = true;
+				snprintf(tmp, 32, "%i. ", x.list_index); // not quite
+			}
+
+			if (ImGui::TreeNodeEx(tmp, flags)) { 
 				ImGui::SameLine();
+				if (take_indent_back) ImGui::Indent(indent_w);
 				DOALL(node);
 				ImGui::TreePop();
-			} else {
-				DOALL(node);
 			}
 		} break;
 
 		// TABLES
 		case impl::MB_TABLE: {
 			auto* node = (impl::MBTable*)_node;
-			int flags = ImGuiTableFlags_Borders | ImGuiTableFlags_Reorderable | 
-			ImGuiTableFlags_Hideable | ImGuiTableFlags_Resizable;
+			int flags = ImGuiTableFlags_Borders | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Resizable;
 			if (ImGui::BeginTable("mdtable", node->columns, flags)) {
 				ImGui::PushID((size_t)node);
 
 				for (int index = 0; index < node->columns; index++) {
-					//auto* n = node->nodes[index];
+					// auto* n = node->nodes[index];
 					ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthStretch);
 				}
 				ImGui::TableHeadersRow();
@@ -869,13 +1253,13 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 						DONODE(n);
 						ImGui::SameLine();
 						char tmp[33] = "\0";
-						snprintf_(tmp, 32, "##r%i", index);
+						snprintf(tmp, 32, "##r%i", index);
 						ImGui::TableHeader(tmp);
 						ImGui::PopStyleVar();
 					} else {
-							if (index % node->columns == 0) ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							DONODE(n);
+						if (index % node->columns == 0) ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						DONODE(n);
 					}
 				}
 
@@ -896,8 +1280,8 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			bool is_first = true;
 
 			ImGui::PushID((size_t)node);
-			bool stat = ImGui::TreeNodeEx("", ImGuiTreeNodeFlags_DefaultOpen |
-			 ImGuiTreeNodeFlags_NoTreePushOnOpen, "%s ", std::string(node->level, '#').c_str());
+			bool stat = ImGui::TreeNodeEx("", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_NoTreePushOnOpen, "%s ",
+																		std::string(node->level, '#').c_str());
 			for (auto* n : node->nodes) {
 				if (is_first) {
 					ImGui::SameLine();
@@ -910,8 +1294,9 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			ImGui::PopID();
 		} break;
 		case impl::MB_HLINE: {
-			auto* node = (impl::MBHLine*)_node;
+			//auto* node = (impl::MBHLine*)_node;
 			ImGui::Separator();
+			x.text_drawn = false; // reset optional separator
 		} break;
 
 		// CODE
@@ -919,13 +1304,24 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			auto* node = (impl::MBCode*)_node;
 			ImGui::PushID((size_t)node);
 			std::string tmp = {node->text.data(), node->text.size()};
-			bool show_code=true;
+			bool show_code = true;
+
+			auto* font = ImGui::GetFont();
+			const float scale = ImGui::GetIO().FontGlobalScale;
+			ImVec2 size =
+					font->CalcTextSizeA(font->FontSize * scale, ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x, tmp.c_str());
 
 			// with description now
 			if (node->caption.size() > 0) {
 				std::string lang = {node->caption.data(), node->caption.size()};
-				show_code = !ImGui::TreeNodeEx(lang.c_str(), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+				ImGui::PushItemWidth(size.x);
+				show_code = ImGui::TreeNodeEx(lang.c_str(),
+																			ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+				ImGui::PopItemWidth();
 			}
+
+			size.x += 16;
+			size.y += 8;
 
 			if (show_code) {
 				PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 0.7f, 1.0f));
@@ -944,31 +1340,40 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			auto* node = (impl::MBText*)_node;
 			DOALL(node);
 		} break;
+
+		// fonts
 		case impl::MS_ITALIC: {
 			auto* node = (impl::MSItalic*)_node;
-			ImGui::PushFont(custom_fonts[2]);
+			bool old = x.is_italic;
+			x.is_italic = true;
+			change_font(x);
 			DOALL(node);
+			x.is_italic = old;
 			ImGui::PopFont();
 		} break;
 		case impl::MS_BOLD: {
 			auto* node = (impl::MSBold*)_node;
-			ImGui::PushFont(custom_fonts[1]);
+			bool old = x.is_bold;
+			x.is_bold = true;
+			change_font(x);
 			DOALL(node);
+			x.is_bold = old;
 			ImGui::PopFont();
 		} break;
+		// internally handled
 		case impl::MS_STRIKE: {
 			auto* node = (impl::MSStrike*)_node;
 			x.is_strikethrough = true;
-			DOALL(node);	// ingore
+			DOALL(node);
 			x.is_strikethrough = false;
 		} break;
 		case impl::MS_UNDERLINE: {
 			auto* node = (impl::MSUnderline*)_node;
 			x.is_underline = true;
-			DOALL(node);	// ignore
+			DOALL(node);
 			x.is_underline = false;
 		} break;
-		case impl::MS_CODE: {
+		case impl::MS_CODE: { // handle just like text?
 			auto* node = (impl::MSCode*)_node;
 			ImGui::PushID((size_t)node);
 			DOALL(node);
@@ -978,9 +1383,10 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			auto* node = (impl::MSLink*)_node;
 			x.url = node->url;
 			x.title = node->title;
-			//render_text(node->title, x);
+
 			DOALL(node);
-			x.title = {};
+
+			x.title = {}; // links are usually cannot be nested...
 			x.url = {};
 		} break;
 		case impl::MS_IMAGE: {
@@ -988,7 +1394,7 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 
 		} break;
 		case impl::MT_NULLCHAR: {
-			auto* node = (impl::MTNullChar*)_node;
+			//auto* node = (impl::MTNullChar*)_node;
 			render_text("\\0", x);
 		} break;
 		case impl::MT_DATA: {
@@ -1005,9 +1411,8 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 			auto* font = ImGui::GetFont();
 			const float scale = ImGui::GetIO().FontGlobalScale;
 
-			ImVec2 size = font->CalcTextSizeA(font->FontSize * scale, 
-				ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x, 
-				tmp.c_str());
+			ImVec2 size =
+					font->CalcTextSizeA(font->FontSize * scale, ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().x, tmp.c_str());
 			size.x += 8;
 			size.y += 8;
 			ImGui::PushItemWidth(size.x);
@@ -1028,21 +1433,51 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 #undef DONODE
 }
 
-void impl::MarkdownTree::draw(const char* name) {
-	if (ImGui::BeginTabItem(name)) {
-		if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, ImGuiWindowFlags_NoSavedSettings)) {
-			// here we go
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 2));
-			auto x = r_ctx();
-			drawNode(root, x);
-			ImGui::PopStyleVar(3);
-		}
-		ImGui::EndChild();
-		ImGui::EndTabItem();
-	}
+//
+// PUBLIC API and PUBLIC MarkdownTree wrapper
+//
+
+MarkdownTree::MarkdownTree(size_t prealloc) {
+	impl = new impl::MarkdownTree(prealloc);
 }
+MarkdownTree::~MarkdownTree() {
+	delete impl;
+}
+bool MarkdownTree::parse(std::string_view md_text) {
+	impl::MarkdownParser p(impl, md_text, true);
+	if (p.parse()) { // tree will be cleared up
+		return true;
+	}
+	impl->clear();	 // on parse errors
+	return false;
+}
+
+void MarkdownTree::set_callback(MarkdownCallback callback, unsigned int callback_allowed_action_flags, void* userdata) {
+	impl->callback = callback;
+	impl->allowed_actions = callback_allowed_action_flags;
+	impl->cb_userdata = userdata;
+}
+
+bool MarkdownTree::render() {
+	bool retval = false;
+	if (ImGui::BeginChild("child_md", ImGui::GetContentRegionAvail(), ImGuiChildFlags_Border, ImGuiWindowFlags_NoSavedSettings)) {
+		// here we go
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 2));
+		auto x = r_ctx();
+		x.tree = impl; // important
+
+		if (impl->root) { // for invalidly parsed trees :)
+			drawNode(impl->root, x);
+		}
+		ImGui::PopStyleVar(3);
+		retval = true;
+	}
+	ImGui::EndChild();
+	return retval;
+}
+
 
 };	// namespace ImGui
 

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "base.hpp"
 #include "screen.hpp"
 #include "imgui.h"
 #include "imgui_md.h"
@@ -37,7 +38,7 @@ static struct HelpManager {
 		ImGui::MarkdownTree tree;
 
 		void draw() {
-			tree.draw(name.c_str());
+			tree.render();
 		}
 	};
 	public:
@@ -56,8 +57,10 @@ static Register r2([](int) {
 			buffer << f.rdbuf();
 			auto& v = man.tabs.emplace_back(HelpManager::HelpTab{.name=entry.path().filename(), .is_closed=false, .content=buffer.str(), .tree={}});
 			//v = man.tabs.back();
-			ImGui::parseMarkdown(v.tree, v.content); // yupee
+			v.tree.parse(v.content); // yupee
+			v.tree.set_callback();
 			buffer = {};
+			LOG_INFO("wtf %s", entry.path().c_str());
 		}
 		loaded=true;
 	}
@@ -79,7 +82,10 @@ static Register r2([](int) {
 			}
 
 			for (auto& t : man.tabs) {
-				t.draw();
+				if(ImGui::BeginTabItem(t.name.c_str())) {
+					t.draw();
+					ImGui::EndTabItem();
+				}
 			}
 			ImGui::EndTabBar();
 		}

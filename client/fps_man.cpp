@@ -206,6 +206,7 @@ void pb::screen::fps_info_man::draw() {
 	ImGui::SameLine();
 	ImGui::Checkbox("Alternative Units", &alternative_unit);
   ImGui::Separator();
+	
 
 	ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
 	if (ImGui::BeginTabBar("MyFpsTabBar", tab_bar_flags)) {
