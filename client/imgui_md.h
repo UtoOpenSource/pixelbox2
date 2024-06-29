@@ -331,6 +331,8 @@ class MarkdownTree {
 
 };
 
+typedef void(*MarkdownCallback)(std::string_view url);
+
 using MarkdownTree = impl::MarkdownTree;
 bool parseMarkdown(MarkdownTree& tree, std::string_view md_text);
 

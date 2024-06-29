@@ -230,10 +230,10 @@ void pb::screen::fps_info_man::draw() {
 
 		if (ImGui::BeginTabItem("Plotter")) {	
 			char overlay[32];
-			float values[100] = {0};
+			std::deque<double> &history = story.history;
+			float values[history.size() + 1];
 			size_t count = 0;
 
-			std::deque<double> &history = story.history;
 			if (history.size() > 1) { 
 				double old = history[0];
 				for (size_t i = 1; i < history.size(); i++) {
@@ -241,10 +241,11 @@ void pb::screen::fps_info_man::draw() {
 						old = history[i];
 						values[count++] = time;
 				}
+				for (; count < history.size(); count++) values[count] = 0.0f;
 			}
 
 			snprintf(overlay, 32, "avg %.4f, fps %i", story.sum_sec.avg, int(count));
-      ImGui::PlotLines("##Lines", values, count, 0, overlay, 0.0f, story.sum_5sec.max, ImVec2(0, 80.0f));
+      ImGui::PlotLines("##Lines", values, count, 0, overlay, 0.0f, story.sum_5sec.max, ImVec2(count*1.0f, 80.0f));
 			ImGui::EndTabItem();
 		}
 
