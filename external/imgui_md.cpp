@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "imgui.h"
 #include "magic_enum.hpp"
@@ -250,6 +251,13 @@ class MarkdownParser;
 // AND TREE TOO!
 class MarkdownTree;
 
+template <typename T>
+static inline void move_and_zero(T&& dst, T&& src) {
+  dst = std::move(src);
+	typename std::remove_reference<T>::type v;
+	src = v;
+}
+
 static const ImFont* NULL_FONTS[MarkdownFonts::MF_MAX_FONTS] = {nullptr};
 
 // Parsed Tree state
@@ -274,20 +282,14 @@ class MarkdownTree {
 	impl::MarkdownItem* root = nullptr;
 
 	// callback, allowed flags and userdata stuff
-	MarkdownCallback callback = nullptr;
-	void *cb_userdata = nullptr;
-	unsigned int allowed_actions = 0; // no actions allowed
+	MarkdownDrawImageCallback image_callback = nullptr;
+	void *image_userdata = nullptr;
+	MarkdownOpenURLCallback url_callback = nullptr;
+	void *url_userdata = nullptr;
 
 	// CUSTOM FONTS
 	const ImFont** fonts = NULL_FONTS;
 	size_t         fonts_cnt = 0;
-
-	// call user callback on stuff
-	inline void cb_if_allowed(MarkdownCallbackAction a, std::string_view o) {
-		if ((allowed_actions & a) && callback) { // unlikely
-			callback(a, o, cb_userdata);
-		}
-	}
 
 	MarkdownTree() = default;
 	MarkdownTree(size_t prealloc) { // create with preallocated page
@@ -308,18 +310,17 @@ class MarkdownTree {
 		src.destr_curr = nullptr;
 		destr_list = src.destr_list;
 		src.destr_list = nullptr;
-		str_copy = std::move(src.str_copy);
-		root = src.root;
-		src.root = nullptr;
-		allowed_actions = src.allowed_actions;
-		callback = src.callback;
-		cb_userdata = src.cb_userdata;
-		src.callback = nullptr;
-		src.allowed_actions = 0;
+
+		move_and_zero(str_copy, src.str_copy);
+		move_and_zero(root, src.root);
+
+		move_and_zero(image_callback,src.image_callback);
+		move_and_zero(image_userdata, src.image_userdata);
+		move_and_zero(url_callback,src.url_callback);
+		move_and_zero(url_userdata, src.url_userdata);
 
 		fonts = src.fonts;
-		fonts_cnt = src.fonts_cnt;
-		src.fonts_cnt = 0; // ez
+		move_and_zero(fonts_cnt, src.fonts_cnt);
 	}
 
 	void* allocate_raw(size_t size);
@@ -1047,12 +1048,12 @@ static void open_url(std::string_view url, r_ctx& x) {
 		// TODO: add search condition for header
 		return;
 	} else if (url.data()[0] == '.' || url.data()[0] == '/' || url.data()[0] == '\\') { // local path to files
-		x.tree->cb_if_allowed(MCA_FILE, url); // let user handle this :)
+		if (x.tree->url_callback) x.tree->url_callback(url, x.tree->url_userdata); // let user handle this :)
 		return;
 	} else if (url.data()[0] == '@' || url.data()[0] == '$' || url.data()[0] == '%' || url.data()[0] == ' ') { // seems weird : ignore
 		return;
 	} else { // it is likely a URL
-		x.tree->cb_if_allowed(MCA_URL, url); // let user handle this :)
+		if (x.tree->url_callback) x.tree->url_callback(url, x.tree->url_userdata); // let user handle this :)
 	}
 }
 
@@ -1391,7 +1392,7 @@ static void drawNode(impl::MarkdownItem* _node, r_ctx& x) {
 		} break;
 		case impl::MS_IMAGE: {
 			auto* node = (impl::MSImage*)_node;
-
+			if (x.tree->image_callback) x.tree->image_callback(node->url, node->title, x.tree->image_userdata);
 		} break;
 		case impl::MT_NULLCHAR: {
 			//auto* node = (impl::MTNullChar*)_node;
@@ -1452,10 +1453,18 @@ bool MarkdownTree::parse(std::string_view md_text) {
 	return false;
 }
 
-void MarkdownTree::set_callback(MarkdownCallback callback, unsigned int callback_allowed_action_flags, void* userdata) {
-	impl->callback = callback;
-	impl->allowed_actions = callback_allowed_action_flags;
-	impl->cb_userdata = userdata;
+void MarkdownTree::set_url_callback(MarkdownOpenURLCallback cb, void* userdata) {
+	impl->url_callback = cb;
+	impl->url_userdata = userdata;
+}
+
+void MarkdownTree::set_image_callback(MarkdownDrawImageCallback cb, void* userdata) {
+	impl->image_callback = cb;
+	impl->image_userdata = userdata;
+}
+
+void MarkdownTree::set_fonts(const ImFont* fonts[], MarkdownFonts count) {
+	impl->set_fonts(fonts, count);
 }
 
 bool MarkdownTree::render() {

@@ -58,6 +58,16 @@ namespace screen {
 		~Register() = default;
 	};
 
+	/**
+	 * this "destructor" is guaranteed to be called BEFORE destructon of the GL context.
+	 * It's intended use is to DESTROY ALL TEXTURES/VBO/EBO/etc. without hardcoding callbacks everywhere
+	 */
+	struct RegisterDestructor {
+		public:
+		RegisterDestructor(std::function<void(void)> f, int priority = 0);
+		~RegisterDestructor() = default;
+	};
+
 	extern bool show_fps_overlay;
 	extern bool show_profiler;
 	extern bool show_demo_window;

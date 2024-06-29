@@ -51,21 +51,8 @@ namespace impl {
 	class MarkdownTree;
 };
 
-/** rendeering callback : open url or draw stuff
- * They are passed into MarkdownCallback, but ONY when user allowed specific of them using bit-or on interesting enums and passing them to set_callback()!
- * DO NOT set unnecesarry bits on, because thiis may slow down things, and also break future compatability
- */
-enum MarkdownCallbackAction {
-	MCA_URL = 1, // open URL (in web browser?)
-	MCA_FILE = 1<<2, /// open file (likely markdown? started with a forward slash, yaou may want to append extension in your callback)
-	          /// @warning DO NOT EDIT TREE THAT IS DRAWN AT THE CURRENT MOMENT! WAIT FOR DRAWING TO FINISH BEFORE SWITCH AND CLEARUP!
-						/// In other case behaviour is undefined.
-	MCA_IMAGE = 1<<3, // DRAW image (and open it). Called for visibble images ONLY. Use ImGui functioss for that.
-						// You may also want to properly cache loaded images, provide or not provide fallback image, unload all of the images from cache later
-	MCA_RESERVED = 1<<8 // Except MORE actions added in the future. For this and greater enum value just do nothing.
-};
-
-typedef void(*MarkdownCallback)(MarkdownCallbackAction action, std::string_view url, void* userdata);
+typedef void(*MarkdownOpenURLCallback)(std::string_view url, void* userdata);
+typedef void(*MarkdownDrawImageCallback)(std::string_view url, std::string_view title, void* userdata);
 
 // rendering fonts
 enum MarkdownFonts {
@@ -100,8 +87,10 @@ class MarkdownTree {
 	MarkdownTree(MarkdownTree&& src) {impl = src.impl; src.impl = nullptr;}
 	public:
 	bool parse(std::string_view md_text);
-	// callback on different actions
-	void set_callback(MarkdownCallback callback = nullptr, unsigned int callback_allowed_action_flags = 0, void* userdata = nullptr);
+
+	// callbacks on different actions
+	void set_url_callback(MarkdownOpenURLCallback cb, void* userdata = nullptr);
+	void set_image_callback(MarkdownDrawImageCallback cb, void* userdata = nullptr);
 
 	/// different fonts for different text
 	/// count must be the LAST font + 1, that was implemented. Leave on 0 to reset fonts and use default one

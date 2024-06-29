@@ -36,31 +36,61 @@ SettingsManager client_settings;
 
 namespace screen {
 
+template<typename ... Args>
 struct FuncUnion {
 	int prio;
-	std::function<void(int)> func;
+	std::function<void(Args...)> func;
 
  public:
-	FuncUnion(std::function<void(int)>&& f, int _prio) : prio(_prio), func(f) {}
-	void operator()(int stat) const {
-		if (func) func(stat);
+	FuncUnion(std::function<void(Args...)>&& f, int _prio) : prio(_prio), func(f) {}
+	void operator()(Args&&...args) const {
+		if (func) func(std::forward<Args>(args)...);
 	}
 	auto operator<=>(const FuncUnion& src) const { return prio <=> src.prio; }
 };
 
-struct FuncList : public std::priority_queue<struct FuncUnion>{auto begin(){return c.cbegin();
-}	 // namespace screen
-auto end() { return c.cend(); }
-}	 // namespace pb
-*funclist = nullptr;
+// specialization... i fuckin hate c++
+template<>
+struct FuncUnion<void> {
+	int prio;
+	std::function<void()> func;
+
+ public:
+	FuncUnion(std::function<void()>&& f, int _prio) : prio(_prio), func(f) {}
+	void operator()() const {
+		if (func) func();
+	}
+	auto operator<=>(const FuncUnion& src) const { return prio <=> src.prio; }
+};
+
+/**
+ * DRAWING CALLBBACKS
+ */
+struct DrawList : public std::priority_queue<struct FuncUnion<int>>{
+	auto begin(){return c.cbegin();}
+	auto end() { return c.cend(); }
+}	*funclist = nullptr;
 
 Register::Register(std::function<void(int)> f, int priority) {
-	if (!funclist) funclist = new FuncList;
+	if (!funclist) funclist = new DrawList;
 	funclist->emplace(std::move(f), priority);
 }
 
+/**
+* DESTRUCTORS
+*/
+struct FreeList : public std::priority_queue<struct FuncUnion<void>>{
+	auto begin(){return c.cbegin();}
+	auto end() { return c.cend(); }
+} *freelist = nullptr;
+
+RegisterDestructor::RegisterDestructor(std::function<void(void)> f, int priority) {
+	if (!freelist) freelist = new FreeList;
+	freelist->emplace(std::move(f), priority);
+}
+
 void DrawAll() {
-	for (const FuncUnion& u : *funclist) {
+	for (auto & u : *funclist) {
 		u(0);
 	}
 }
@@ -220,6 +250,12 @@ int main() {
 	// finalization
 	pb::screen::change(nullptr);	// free any current screen
 	delete pb::screen::funclist;
+
+	// free all. CALL "DESTRUCTORS" BEFORE DESTROYING GL CONTEXT!
+	for (auto& a : *pb::screen::freelist) {
+		a();
+	}
+	delete pb::screen::freelist;
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplSDL2_Shutdown();
