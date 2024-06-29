@@ -151,6 +151,7 @@ int main() {
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	 // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	 // Enable Gamepad Controls
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	 // Enable DOCKING!
 		// setup InGui backends
 		ImGui_ImplSDL2_InitForOpenGL(pb::window::ptr, SDL_GL_GetCurrentContext());
 		ImGui_ImplOpenGL3_Init();
