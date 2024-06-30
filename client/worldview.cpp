@@ -21,11 +21,14 @@
 #include <iostream>
 
 #include "SDL_events.h"
+#include "base.hpp"
 #include "clock.hpp"
 #include "galogen.h"
 #include "profiler.hpp"
 #include "screen.hpp"
 #include "shader.hpp"
+
+#include "raymath.h"
 
 namespace pb {
 
@@ -63,68 +66,6 @@ void main() {
 
 )";
 
-typedef struct Matrix {
-    float m0, m4, m8, m12;
-    float m1, m5, m9, m13; 
-    float m2, m6, m10, m14;
-    float m3, m7, m11, m15;
-} Matrix;
-
-// Taken from raylib https://github.com/raysan5/raylib/blob/master/src/raymath.h
-static Matrix MatrixInvert(Matrix mat) {
-    Matrix result = {};
-
-    float a00 = mat.m0, a01 = mat.m1, a02 = mat.m2, a03 = mat.m3;
-    float a10 = mat.m4, a11 = mat.m5, a12 = mat.m6, a13 = mat.m7;
-    float a20 = mat.m8, a21 = mat.m9, a22 = mat.m10, a23 = mat.m11;
-    float a30 = mat.m12, a31 = mat.m13, a32 = mat.m14, a33 = mat.m15;
-
-    float b00 = a00*a11 - a01*a10;
-    float b01 = a00*a12 - a02*a10;
-    float b02 = a00*a13 - a03*a10;
-    float b03 = a01*a12 - a02*a11;
-    float b04 = a01*a13 - a03*a11;
-    float b05 = a02*a13 - a03*a12;
-    float b06 = a20*a31 - a21*a30;
-    float b07 = a20*a32 - a22*a30;
-    float b08 = a20*a33 - a23*a30;
-    float b09 = a21*a32 - a22*a31;
-    float b10 = a21*a33 - a23*a31;
-    float b11 = a22*a33 - a23*a32;
-
-    float invDet = 1.0f/(b00*b11 - b01*b10 + b02*b09 + b03*b08 - b04*b07 + b05*b06);
-
-    result.m0 = (a11*b11 - a12*b10 + a13*b09)*invDet;
-    result.m1 = (-a01*b11 + a02*b10 - a03*b09)*invDet;
-    result.m2 = (a31*b05 - a32*b04 + a33*b03)*invDet;
-    result.m3 = (-a21*b05 + a22*b04 - a23*b03)*invDet;
-    result.m4 = (-a10*b11 + a12*b08 - a13*b07)*invDet;
-    result.m5 = (a00*b11 - a02*b08 + a03*b07)*invDet;
-    result.m6 = (-a30*b05 + a32*b02 - a33*b01)*invDet;
-    result.m7 = (a20*b05 - a22*b02 + a23*b01)*invDet;
-    result.m8 = (a10*b10 - a11*b08 + a13*b06)*invDet;
-    result.m9 = (-a00*b10 + a01*b08 - a03*b06)*invDet;
-    result.m10 = (a30*b04 - a31*b02 + a33*b00)*invDet;
-    result.m11 = (-a20*b04 + a21*b02 - a23*b00)*invDet;
-    result.m12 = (-a10*b09 + a11*b07 - a12*b06)*invDet;
-    result.m13 = (a00*b09 - a01*b07 + a02*b06)*invDet;
-    result.m14 = (-a30*b03 + a31*b01 - a32*b00)*invDet;
-    result.m15 = (a20*b03 - a21*b01 + a22*b00)*invDet;
-
-    return result;
-}
-
-static void VectorTransform(float vec[3], Matrix mat)
-{
-	float x = vec[0];
-	float y = vec[1];
-	float z = vec[2];
-
-	vec[0] = mat.m0*x + mat.m4*y + mat.m8*z + mat.m12;
-	vec[1] = mat.m1*x + mat.m5*y + mat.m9*z + mat.m13;
-	vec[2] = mat.m2*x + mat.m6*y + mat.m10*z + mat.m14;
-}
-
 static class WorldViewScreen : public screen::Screen {
  protected:
 	ShaderProgram prog;
@@ -140,31 +81,49 @@ static class WorldViewScreen : public screen::Screen {
 	int click_x = 0, click_y = 0;
 	Matrix curr_matrix;
 
+	float tbx = 0, tby = 0;
+
  public:
 	WorldViewScreen() {}
 
+	Matrix GetModelMatrix() {
+			float WW = window::width;
+		float HH = window::height;
+		return GetCameraMatrix2D(cam_offx, cam_offy, 0, 1/cam_scale, WW/2, HH/2);
+	}
+
 	void UpdateMatrix() {
-		float WW = window::width/2.0f *cam_scale;
-		float HH = window::height/2.0f *cam_scale;
+		float WW = window::width;
+		float HH = window::height;
 
 		// camera points to the center!
-		float L = cam_offx - WW;
-		float R = (cam_offx + WW);
-		float T = cam_offy - HH;
-		float B = (cam_offy + HH);
-		const Matrix ortho_projection = {
-				2.0f / (R - L), 0.0f, 0.0f, 0.0f,
-				0.0f, 2.0f / (T - B), 0.0f, 0.0f,
-				0.0f, 0.0f, -1.0f, 0.0f,
-				(R + L) / (L - R), (T + B) / (B - T), 0.0f, 1.0f,
+		float L = 0;
+		float R = (WW);
+		float T = 0;
+		float B = (HH);
+
+		curr_matrix = MatrixOrtho(L, R, B, T, -1, 1);
+		curr_matrix = MatrixMultiply(GetModelMatrix(), curr_matrix);
+		//curr_matrix = GetCameraMatrix2D(0, 0, 0, cam_scale, cam_offx, cam_offy);
+		static int cc = 0;
+		auto arr = MatrixToFloatV(curr_matrix);
+
+		if (cc++ < 400) return;
+		cc = 0; 
+		printf_("MATRIX:");
+		int cnt = 0;
+		for (float i : arr.v) {
+			printf_("%+.6f, ", i);
+			cnt++;
+			if (cnt % 4 == 0) printf_("\n\t");
 		};
-		curr_matrix = ortho_projection;
+		printf_("\n");
 	}
 
  private:
 	void UpdateMatUniform() {
 		{
-			GL_CALL(glUniformMatrix4fv(AID_ProjMtx, 1, GL_FALSE, &curr_matrix.m0));	 // update Projection matrix
+			GL_CALL(glUniformMatrix4fv(AID_ProjMtx, 1, GL_FALSE, MatrixToFloatV(curr_matrix).v)); // update Projection matrix
 		}
 	}
 
@@ -240,7 +199,7 @@ static class WorldViewScreen : public screen::Screen {
 		GL_CALL(glEnableVertexAttribArray(0));
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
 		
-		DrawRect(100, 100, 300, 300);
+		DrawRect(tbx, tby, 300, 300);
 
 		for (int i = 0; i < 30 * 30; i++) {
 			float x = (i % 30) * 100;
@@ -263,6 +222,14 @@ static class WorldViewScreen : public screen::Screen {
 			click_x = e.button.x;
 			click_y = e.button.y;
 			LOG_INFO("CLICK");
+		}
+		if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == 3) {
+			Vector3 vec = {(e.button.x)*1.0f, e.button.y*1.0f, 0};
+			Matrix inv = MatrixInvert(GetModelMatrix());
+			vec = Vector3Transform(vec, inv);
+			tbx = vec.x;
+			tby = vec.y;
+			LOG_INFO("CLICK MID %f %f %f %f", 0.0, 0.0, tbx, tby);
 		}
 		if (e.type == SDL_MOUSEBUTTONUP && e.button.button == 1) {
 			is_clicked = false;

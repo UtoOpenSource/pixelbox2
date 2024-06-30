@@ -36,21 +36,21 @@ SettingsManager client_settings;
 
 namespace screen {
 
-template<typename ... Args>
+template <typename... Args>
 struct FuncUnion {
 	int prio;
 	std::function<void(Args...)> func;
 
  public:
 	FuncUnion(std::function<void(Args...)>&& f, int _prio) : prio(_prio), func(f) {}
-	void operator()(Args&&...args) const {
+	void operator()(Args&&... args) const {
 		if (func) func(std::forward<Args>(args)...);
 	}
 	auto operator<=>(const FuncUnion& src) const { return prio <=> src.prio; }
 };
 
 // specialization... i fuckin hate c++
-template<>
+template <>
 struct FuncUnion<void> {
 	int prio;
 	std::function<void()> func;
@@ -66,10 +66,11 @@ struct FuncUnion<void> {
 /**
  * DRAWING CALLBBACKS
  */
-struct DrawList : public std::priority_queue<struct FuncUnion<int>>{
-	auto begin(){return c.cbegin();}
-	auto end() { return c.cend(); }
-}	*funclist = nullptr;
+struct DrawList : public std::priority_queue<struct FuncUnion<int>>{auto begin(){return c.cbegin();
+}	 // namespace screen
+auto end() { return c.cend(); }
+}	 // namespace pb
+*funclist = nullptr;
 
 Register::Register(std::function<void(int)> f, int priority) {
 	if (!funclist) funclist = new DrawList;
@@ -77,12 +78,13 @@ Register::Register(std::function<void(int)> f, int priority) {
 }
 
 /**
-* DESTRUCTORS
-*/
-struct FreeList : public std::priority_queue<struct FuncUnion<void>>{
-	auto begin(){return c.cbegin();}
-	auto end() { return c.cend(); }
-} *freelist = nullptr;
+ * DESTRUCTORS
+ */
+struct FreeList : public std::priority_queue<struct FuncUnion<void>>{auto begin(){return c.cbegin();
+}
+auto end() { return c.cend(); }
+}
+*freelist = nullptr;
 
 RegisterDestructor::RegisterDestructor(std::function<void(void)> f, int priority) {
 	if (!freelist) freelist = new FreeList;
@@ -90,7 +92,7 @@ RegisterDestructor::RegisterDestructor(std::function<void(void)> f, int priority
 }
 
 void DrawAll() {
-	for (auto & u : *funclist) {
+	for (auto& u : *funclist) {
 		u(0);
 	}
 }
@@ -158,7 +160,7 @@ static void save_all() {
 }
 
 namespace ImGui {
-	extern void loadExtraFonts();
+extern void loadExtraFonts();
 };
 
 int main() {
@@ -181,7 +183,7 @@ int main() {
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;	 // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;	 // Enable Gamepad Controls
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;	 // Enable DOCKING!
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;			 // Enable DOCKING!
 		// setup InGui backends
 		ImGui_ImplSDL2_InitForOpenGL(pb::window::ptr, SDL_GL_GetCurrentContext());
 		ImGui_ImplOpenGL3_Init();
@@ -207,12 +209,15 @@ int main() {
 				auto& io = ImGui::GetIO();
 				ImGui_ImplSDL2_ProcessEvent(&e);
 				extra_keys(e);
+
 				// check if imgui want to exclusively capture theese events
 				// ImGui already recieved events above in w.tick()!
 				if (io.WantCaptureKeyboard && (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)) continue;
-				if (io.WantCaptureMouse && (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP || e.type == SDL_MOUSEMOTION)) continue;
+				if (io.WantCaptureMouse &&
+						(e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP || e.type == SDL_MOUSEMOTION || e.type == SDL_MOUSEWHEEL))
+					continue;
 
-				// handle input
+				// else handle input
 				if (pb::screen::curr_scr) pb::screen::curr_scr->input(e);
 			}
 
