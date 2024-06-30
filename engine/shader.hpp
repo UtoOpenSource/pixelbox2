@@ -1,4 +1,22 @@
-// quick and dirty shader creation routines
+/*
+ * This file is a part of Pixelbox - Infinite 2D sandbox game
+ * quick shader creation routines and various GL stuff
+ * Copyright (C) 2024 UtoECat
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <cassert>
 #include <string_view>
 #include "galogen.h"
@@ -120,5 +138,22 @@ namespace pb {
 		frag.destroy();
 		return dest.link_ok;
 	}
+
+	/// Scoped VAO
+	/// We always create new VAO every frame, because it's most stable solution
+	/// and CORE profile REQUIRES us to create VAO, there is no default one, so... yea
+	class VAOScope {
+		public:
+		GLuint VAO = 0;
+		// automaticly BEGINS vertex array
+		VAOScope() {
+			glGenVertexArrays(1, &VAO);
+			glBindVertexArray(VAO);
+		}
+		~VAOScope() {
+			glDeleteVertexArrays(1, &VAO);
+		}
+		operator GLuint() {return VAO;};
+	};
 
 };

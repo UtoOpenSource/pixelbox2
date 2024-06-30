@@ -26,29 +26,10 @@
 #include "profiler.hpp"
 #include "clock.hpp"
 
-#define GL_CALL(_CALL)      do { _CALL; GLenum gl_err = glGetError(); if (gl_err != 0) fprintf(stderr, "GL error 0x%x returned from '%s'.\n", gl_err, #_CALL); } while (0)  // Call with error check
+//define GL_CALL(_CALL)      do { _CALL; GLenum gl_err = glGetError(); if (gl_err != 0) fprintf(stderr, "GL error 0x%x returned from '%s'.\n", gl_err, #_CALL); } while (0)  // Call with error check
+#include "shader.hpp"
 
 namespace pb {
-
-#if 0
-static const char *vertexShaderSource = 
-R"a(#version 330
-layout(location = 0)in vec3 aPos;
-//layout(location = 1)in vec3 aCol;
-out vec3 vColor;
-void main() {
-	vColor = vec3(1.0, 0.0, 1.0);
-	gl_Position = vec4(aPos, 1.0);
-})a";
-
-static const char *fragmentShaderSource = R"(#version 330
-in vec3 vColor;
-out vec4 FragColor;
-void main() {
-	FragColor = vec4(vColor, 1.0);
-}
-)"; 
-#endif
 
 const char *vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
@@ -56,6 +37,7 @@ const char *vertexShaderSource = "#version 330 core\n"
     "{\n"
     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
     "}\0";
+
 const char *fragmentShaderSource = R"(#version 330 core
 #extension GL_ARB_explicit_uniform_location : enable
 #extension GL_ARB_explicit_attrib_location : enable
@@ -134,51 +116,21 @@ void main(){
 
 static class Background : public screen::Screen {
  protected:
-	GLuint shaderProgram = 0;
+	//GLuint shaderProgram = 0;
+	ShaderProgram prog;
 	GLuint VAO = 0;
 	GLuint VBO = 0;
  public:
 	Background() {}
 
 	void activate() override {
-		// vertex shader
-		unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-		glCompileShader(vertexShader);
-		// check for shader compile errors
-		int success;
-		char infoLog[512];
-		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+		prog.create();
+		if (!CreateShaders(prog, vertexShaderSource, fragmentShaderSource)) {
+			// fuck
+			prog.destroy();
 		}
-		// fragment shader
-		unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-		glCompileShader(fragmentShader);
-		// check for shader compile errors
-		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-		if (!success) {
-			glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-		}
-		// link shaders
-		shaderProgram = glCreateProgram();
-		glAttachShader(shaderProgram, vertexShader);
-		glAttachShader(shaderProgram, fragmentShader);
-		glLinkProgram(shaderProgram);
-		// check for linking errors
-		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-		if (!success) {
-			glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-			std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-		}
-		glDeleteShader(vertexShader);
-		glDeleteShader(fragmentShader);
 
 		// stuff
-
 		float vertices[] = {
         // first triangle
         -1, -1, 0.0f,  // left 
@@ -198,29 +150,26 @@ static class Background : public screen::Screen {
 	}
 
 	void deactivate() override {
-		glDeleteProgram(shaderProgram);
+		prog.destroy();
 		glDeleteBuffers(1, &VBO);
 	}
 
 	void redraw() override {
-
 		{
-			PROFILING_SCOPE("glUseProgram + CreeateVertexArray")
-			GL_CALL(glUseProgram(shaderProgram));
-    	glGenVertexArrays(1, &VAO);
+			PROFILING_SCOPE("glUseProgram")
+			GL_CALL(glUseProgram(prog));
 		}
+		VAOScope VAO; // VAO is autobinded
 
 		GL_CALL(glUniform2f(1, pb::window::width, pb::window::height));
 		GL_CALL(glUniform1f(2, pb::__clocksource.time()));
 
-		GL_CALL(glBindVertexArray(VAO)); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 		GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0));
     GL_CALL(glEnableVertexAttribArray(0));
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
     GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, 5)); // set the count to 6 since we're drawing 6 vertices now (2 triangles); not 3!
 
 		GL_CALL(glBindVertexArray(0));
-		glDeleteVertexArrays(1, &VAO);
 		GL_CALL(glUseProgram(0));
 	}
 } bg;
