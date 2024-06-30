@@ -40,7 +40,7 @@ layout (location = 0) in vec3 Position;
 //layout (location = 1) in vec2 UV;
 //layout (location = 2) in vec3 Color;
 out vec3 vColor;
-out vec2 vUV;
+out vec2 vUV; 
 
 void main() {
 	vColor = vec3(0.5, 1, 0);//Color;
@@ -105,9 +105,10 @@ static class WorldViewScreen : public screen::Screen {
 		curr_matrix = MatrixOrtho(L, R, B, T, -1, 1);
 		curr_matrix = MatrixMultiply(GetModelMatrix(), curr_matrix);
 		//curr_matrix = GetCameraMatrix2D(0, 0, 0, cam_scale, cam_offx, cam_offy);
-		static int cc = 0;
+		//static int cc = 0;
 		auto arr = MatrixToFloatV(curr_matrix);
 
+		/*
 		if (cc++ < 400) return;
 		cc = 0; 
 		printf_("MATRIX:");
@@ -117,7 +118,7 @@ static class WorldViewScreen : public screen::Screen {
 			cnt++;
 			if (cnt % 4 == 0) printf_("\n\t");
 		};
-		printf_("\n");
+		printf_("\n"); */
 	}
 
  private:

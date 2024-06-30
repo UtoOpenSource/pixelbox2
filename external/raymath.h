@@ -1717,7 +1717,7 @@ RMAPI Matrix GetCameraMatrix2D(float tx, float ty, float rot, float zoom, float 
 RMAPI Matrix MatrixOrtho(double left, double right, double bottom, double top, double znear, double zfar) {
     // NOTE: If left-right and top-botton values are equal it could create a division by zero,
     // response to it is platform/compiler dependant
-    Matrix matOrtho = { 0 };
+    Matrix matOrtho = {};
 
     float rl = (float)(right - left);
     float tb = (float)(top - bottom);
