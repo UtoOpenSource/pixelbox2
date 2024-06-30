@@ -57,6 +57,8 @@ namespace pb {
 			if (!success) {
 				glGetShaderInfoLog(handle, 512, NULL, infoLog);
 				LOG_ERROR("ERROR::SHADER_COMPILATION_FAILED %s", infoLog);
+			} else {
+				LOG_INFO("SHADER COMPILED SUCCESFULLY!");
 			}
 			return success;
 		}

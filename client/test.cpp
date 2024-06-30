@@ -118,7 +118,6 @@ static class Background : public screen::Screen {
  protected:
 	//GLuint shaderProgram = 0;
 	ShaderProgram prog;
-	GLuint VAO = 0;
 	GLuint VBO = 0;
  public:
 	Background() {}
@@ -141,11 +140,8 @@ static class Background : public screen::Screen {
 				-1, -1, 0.0f,  // left 
     }; 
 		GL_CALL(glGenBuffers(1, &VBO));
-
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW));
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
 	}
 
@@ -177,7 +173,7 @@ static class Background : public screen::Screen {
 static bool a = false;
 static screen::Register aaa([](int) {
 	if (!a) {
-		screen::change(&bg);
+		//screen::change(&bg);
 		a = true;
 	}
 });
