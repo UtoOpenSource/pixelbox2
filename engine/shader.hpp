@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#pragma once
 #include <cassert>
 #include <string_view>
 #include "galogen.h"
@@ -105,12 +106,12 @@ namespace pb {
 
 		/// -1 on failture
 		GLint FindAttributeID(const char* name) {
-    	return glGetAttribLocation(handle, name);
+    		return glGetAttribLocation(handle, name);
 		};
 
 		/// -1 on failture
 		GLint FindUniformID(const char* name) {
-		 return glGetUniformLocation(handle, name);
+			return glGetUniformLocation(handle, name);
 		};
 
 		operator GLuint() {

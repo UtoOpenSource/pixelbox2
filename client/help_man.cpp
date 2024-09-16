@@ -216,7 +216,7 @@ static Register r2([](int) {
 			v.tree.parse(v.content); // yupee
 			v.tree.set_image_callback(man.image_handler, &man);
 			buffer = {};
-			LOG_INFO("wtf %s", entry.path().c_str());
+			// LOG_INFO("wtf %s", entry.path().c_str());
 		}
 		loaded=true;
 	}

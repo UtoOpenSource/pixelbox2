@@ -17,18 +17,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "galogen.h"
 #include <cstdio>
-#include <iostream>
+#include <cstdlib>
+#include <vector>
 
 #include "SDL_events.h"
 #include "base.hpp"
 #include "clock.hpp"
+#include "drawlist.hpp"
 #include "galogen.h"
+#include "printf.h"
 #include "profiler.hpp"
 #include "screen.hpp"
 #include "shader.hpp"
 
 #include "raymath.h"
+
+#include "memedit.h"
 
 namespace pb {
 
@@ -36,23 +42,23 @@ static const char *vertexShaderSource =
 		R"a(#version 330
 
 uniform mat4 ProjMtx;
-layout (location = 0) in vec3 Position;
-//layout (location = 1) in vec2 UV;
-//layout (location = 2) in vec3 Color;
-out vec3 vColor;
+layout (location = 0) in vec2 Position;
+layout (location = 1) in vec2 UV;
+layout (location = 2) in float Color;
+out vec4 vColor;
 out vec2 vUV; 
 
 void main() {
-	vColor = vec3(0.5, 1, 0);//Color;
-	vUV = vec2(0, 0);//UV;
-	gl_Position = ProjMtx * vec4(Position, 1.0);
+	vColor = vec4(Color, Color, Color, 1.0);
+	vUV = UV;
+	gl_Position = ProjMtx * vec4(Position, 0.0, 1.0);
 }
 
 )a";
 
 static const char *fragmentShaderSource = R"(#version 330
 
-in vec3 vColor;
+in vec4 vColor;
 in vec2 vUV;
 
 uniform float iTime;
@@ -61,22 +67,48 @@ uniform sampler2D Texture;
 out vec4 FragColor;
 
 void main() {
-	FragColor = vec4(vColor, 1.0) + texture2D(Texture, vUV.st);
+	FragColor = vColor + texture2D(Texture, vUV.st);
 }
 
 )";
+
+static struct __gbuff {
+	static constexpr size_t PER_VERTEX = 8;
+  std::vector<float> buffdata = std::vector<float>(100*PER_VERTEX); // data to put in VBO
+
+	void flush(GLuint VBO) {
+		GL_CALL(glBufferData(GL_ARRAY_BUFFER, buffdata.size() * sizeof(float), buffdata.data(), GL_DYNAMIC_DRAW));
+		GL_CALL(glDrawArrays(GL_TRIANGLES, 0, buffdata.size() / PER_VERTEX));
+		buffdata.resize(0);
+	}
+
+	inline void vertex(float v[PER_VERTEX]) {
+		for (size_t i = 0; i < PER_VERTEX; i++) {
+			buffdata.push_back(v[i]);
+		}
+	}
+
+} gbuff;
+
+
 
 static class WorldViewScreen : public screen::Screen {
  protected:
 	ShaderProgram prog;
 	GLuint VBO = 0;
+	GLuint EBO = 0;
+
 	GLint AID_ProjMtx = 0;	// AttriblocationInDentifier
 	GLint AID_Texture = 0;
 	GLint AID_iTime = 0;
-	GLint AID_Position = 0;
-
  public:
+ 	pb::VtxDrawList<sizeof(float) * 5> drawlist;
+ public:
+	// float offsets. They are "virtual" offsets in the boundaries of a chunk.
 	float cam_offx = 0, cam_offy = 0, cam_scale = 1.0;
+	//int32_t cam_hpos_x = 0, cam_chpos_y = 0; // THE CHUNK OFFSET
+
+	// input
 	bool is_clicked = false;
 	int click_x = 0, click_y = 0;
 	Matrix curr_matrix;
@@ -104,21 +136,6 @@ static class WorldViewScreen : public screen::Screen {
 
 		curr_matrix = MatrixOrtho(L, R, B, T, -1, 1);
 		curr_matrix = MatrixMultiply(GetModelMatrix(), curr_matrix);
-		//curr_matrix = GetCameraMatrix2D(0, 0, 0, cam_scale, cam_offx, cam_offy);
-		//static int cc = 0;
-		auto arr = MatrixToFloatV(curr_matrix);
-
-		/*
-		if (cc++ < 400) return;
-		cc = 0; 
-		printf_("MATRIX:");
-		int cnt = 0;
-		for (float i : arr.v) {
-			printf_("%+.6f, ", i);
-			cnt++;
-			if (cnt % 4 == 0) printf_("\n\t");
-		};
-		printf_("\n"); */
 	}
 
  private:
@@ -129,53 +146,52 @@ static class WorldViewScreen : public screen::Screen {
 	}
 
 	/// YOU MUST BIND BUFFER BEFORE! AND VAO/VBO ETC.
-	void DrawRect(float x, float y, float w, float h) {
-		float vertices[] = {
-				// first triangle
-				x,     y, 0.0f,	 // left
-				x+w,   y, 0.0f,	 // right
-				x+w, y+h, 0.0f,	 // top
-				// second triangle
-				x,   y+h, 0.0f,	 // left
-				x,     y, 0.0f,	 // left
-		};
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW));
-		GL_CALL(glDrawArrays(GL_TRIANGLE_STRIP, 0, 5));
-	}
+	/*void DrawRect(float x, float y, float w, float h) {
+		gbuff.vertex((float[]){x  , y  , 0.0f, 0.0f, 1.0f, .0f, .0f, 1.0f}); // LT
+		gbuff.vertex((float[]){x+w, y  , 0.0f, 0.0f, .0f, 1.0f, .0f, 1.0f}); // RT
+		gbuff.vertex((float[]){x+w, y+h, 0.0f, 0.0f, .0f, .0f, 1.0f, 1.0f}); // RB
+
+		gbuff.vertex((float[]){x+w, y+h, 0.0f, 0.0f, .0f, .0f, 1.0f, 1.0f}); // RB
+		gbuff.vertex((float[]){x  , y+h, 0.0f, 0.0f, 1.0f, .10f, 1.0f, 1.0f}); // LB
+		gbuff.vertex((float[]){x  , y  , 0.0f, 0.0f, 1.0f, .0f, .0f, 1.0f}); // LT
+		
+	}*/
+	void DrawRect(float x, float y, float w, float h, float bright) {
+		// correct types are important!
+		int LT = drawlist.add_unique_v(x,   y  , 0.0f, 0.0f, bright);
+				 drawlist.add_unique_v(x+w, y  , 1.0f, 0.0f, bright);
+		int RB = drawlist.add_unique_v(x+w, y+h, 1.0f, 1.0f, bright);
+		         drawlist.add_same_vertex(RB);
+				 drawlist.add_unique_v(x  , y+h, 0.0f, 1.0f, bright);
+				 drawlist.add_same_vertex(LT);
+	};
 
  public:
 	void activate() override {
 		prog.create();
 		if (!CreateShaders(prog, vertexShaderSource, fragmentShaderSource)) {
 			// oh no
+			LOG_INFO("WE ARE SO FUCKED %i!", (GLint)prog);
 			prog.destroy();
+			return;
 		}
-
-		// stuff
-		float st = 30;
-		float ed = 100;
-		float vertices[] = {
-				// first triangle
-				st, st, 0.0f,	 // left
-				ed, st, 0.0f,	 // right
-				ed, ed, 0.0f,	 // top
-				// second triangle
-				st, ed, 0.0f,	 // left
-				st, st, 0.0f,	 // left
-		};
 
 		GL_CALL(glGenBuffers(1, &VBO));
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
-		GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW));
-		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
+		GL_CALL(glGenBuffers(1, &EBO));
+		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, EBO));
+		//GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW));
+		//GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, 0));
 
 		AID_ProjMtx = prog.FindUniformID("ProjMtx");
 		AID_Texture = prog.FindUniformID("Texture");
 		AID_iTime = prog.FindUniformID("iTime");
-		AID_Position = prog.FindAttributeID("Position");
+		//AID_Position = prog.FindAttributeID("Position");
+		//AID_TexCoord = prog.FindAttributeID("UV");
+		//AID_Color = prog.FindAttributeID("Color");
 
-		LOG_INFO("TIME : %i, PROG : %i", AID_iTime, (GLint)prog);
-		assert(AID_Position == 0);
+		LOG_INFO("TIME : %i, MAT:%i, PROG : %i", AID_iTime, AID_ProjMtx, (GLint)prog);
+		//assert(AID_Position == 0);
 		// if (AID_Texture > 0) {GL_CALL(glUniform1i(AID_Texture, 0));}; // once
 
 		UpdateMatrix(); // set new defaults
@@ -196,17 +212,25 @@ static class WorldViewScreen : public screen::Screen {
 		};
 
 		/// GET READY FOR DRAWRECT!
-		GL_CALL(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0));
-		GL_CALL(glEnableVertexAttribArray(0));
 		GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+		GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO));
+		GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, drawlist.item_size(), (void *)0));
+		GL_CALL(glEnableVertexAttribArray(0));
+		GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, drawlist.item_size(), (void *)(sizeof(float)*2)));
+		GL_CALL(glEnableVertexAttribArray(1));
+		GL_CALL(glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, drawlist.item_size(), (void *)(sizeof(float)*4)));
+		GL_CALL(glEnableVertexAttribArray(2));
 		
-		DrawRect(tbx, tby, 300, 300);
+		DrawRect(tbx, tby, 300, 300, 1.0f);
 
-		for (int i = 0; i < 30 * 30; i++) {
+		for (int i = 0; i < /*30 * 30*/4; i++) {
 			float x = (i % 30) * 100;
 			float y = (int)(i / 30) * 100;
-			DrawRect(x+500, y+500, 90, 90);
+			DrawRect(x+0, y+0, 90, 90, 0.5f);
 		}
+
+		drawlist.flush(VBO, EBO);
+		//drawlist.clear();
 
 		GL_CALL(glBindVertexArray(0));
 		GL_CALL(glUseProgram(0));
@@ -215,6 +239,8 @@ static class WorldViewScreen : public screen::Screen {
 	void deactivate() override {
 		prog.destroy();
 		glDeleteBuffers(1, &VBO);
+		glDeleteBuffers(1, &EBO);
+		drawlist.clear();
 	}
 
 	void input(SDL_Event &e) override {
@@ -254,6 +280,10 @@ static screen::Register aaasus([](int) {
 		screen::change(&bg);
 		a = true;
 	}
+	static MemoryEditor mem_edit, mem_edit2;
+	mem_edit.DrawWindow("Memory Editor : Verticies", bg.drawlist.verticies.Data, bg.drawlist.verticies.size_in_bytes());
+	mem_edit2.DrawWindow("Memory Editor : Indicies", bg.drawlist.indicies.Data, bg.drawlist.indicies.size_in_bytes());
+	bg.drawlist.clear();
 });
 
 };	// namespace pb

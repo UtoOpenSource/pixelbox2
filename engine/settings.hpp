@@ -30,11 +30,7 @@ namespace pb {
 		sqlite::Statement set_stmt;
 		void init_stmts(const char* tab) {
 			static char tmp[515] = {0};
-
-			LOG_DEBUG("!");
 			db.assert_owned();
-			LOG_DEBUG("0");
-
 			int n = snprintf_(tmp, 512, "CREATE TABLE IF NOT EXISTS %s (key STRING PRIMARY KEY NOT NULL, value)", tab);
 			if (n > 0) {
 				std::string_view sql(tmp, n);
@@ -42,17 +38,11 @@ namespace pb {
 				stmt.compile(db, sql).raise();
 				stmt.execute().raise();
 			};
-			db.assert_owned();
-			LOG_DEBUG("1");
-
 			n = snprintf_(tmp, 512, "SELECT value FROM %s WHERE key = ?1", tab);
 			if (n > 0) {
 				std::string_view sql(tmp, n);
 				get_stmt.compile(db, sql).raise();
 			}
-
-			db.assert_owned();
-			LOG_DEBUG("2");
 			n = snprintf_(tmp, 512, "INSERT OR REPLACE INTO %s(key, value) VALUES (?1, ?2)", tab);
 			if (n > 0) {
 				std::string_view sql(tmp, n);
