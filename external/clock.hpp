@@ -26,7 +26,7 @@ namespace pb {
 
 		public:
 		/** get most presize time in system. never changes back. Threadsafe?*/
-		double time();
+		static double time();
 		/** return delta time from last tick() call. Not thread safe*/
 		float  delta();
 		/** sets time position for delta() function. Not thread safe*/

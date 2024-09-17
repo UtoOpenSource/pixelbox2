@@ -17,8 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
- #include "engine/raiisqlite.hpp"
- #include "printf.h"
+#pragma once
+#include "engine/raiisqlite.hpp"
+#include "printf.h"
 
 namespace pb {
 

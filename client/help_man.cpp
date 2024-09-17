@@ -32,6 +32,10 @@
 
 namespace fs = std::filesystem;
 
+namespace ImGui {
+	extern const ImFont* custom_fonts[3];
+};
+
 namespace pb {
 
 namespace screen {
@@ -215,6 +219,7 @@ static Register r2([](int) {
 			//v = man.tabs.back();
 			v.tree.parse(v.content); // yupee
 			v.tree.set_image_callback(man.image_handler, &man);
+			v.tree.set_fonts(ImGui::custom_fonts, ImGui::MarkdownFonts::MF_ITALIC);
 			buffer = {};
 			// LOG_INFO("wtf %s", entry.path().c_str());
 		}

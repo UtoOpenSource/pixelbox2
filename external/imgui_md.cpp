@@ -1094,7 +1094,7 @@ static void render_text(std::string_view data, r_ctx& x) {
 		te = ImGui::GetFont()->CalcWordWrapPositionA(scale, str, str_end, wl);
 
 		if (!x.url.empty()) {
-			PushStyleColor(ImGuiCol_Text, s.Colors[ImGuiCol_ButtonHovered]);
+			PushStyleColor(ImGuiCol_Text, s.Colors[ImGuiCol_NavHighlight]);
 			pop_color = true;
 		}
 
@@ -1112,13 +1112,13 @@ static void render_text(std::string_view data, r_ctx& x) {
 			if (ImGui::IsItemHovered()) {
 				ImGui::SetTooltip("%.*s\n%.*s", int(x.url.size()), x.url.data(), int(x.title.size()), x.title.data());
 
-				c = s.Colors[ImGuiCol_ButtonHovered];
+				c = s.Colors[ImGuiCol_PlotLinesHovered];
 				if (ImGui::IsMouseReleased(0)) {
 					// open url
 					open_url(x.url, x);
 				}
 			} else {
-				c = s.Colors[ImGuiCol_Button];
+				c = s.Colors[ImGuiCol_PlotLines];
 			}
 			line(c, true);
 		}

@@ -80,7 +80,7 @@ struct VtxDrawList {
 	}
 
 	inline void add_same_vertex(unsigned int index) {
-		assert(index < indicies.size()); // sanity check
+		assert(index < (unsigned int)indicies.size()); // sanity check
 		indicies.push_back(index); // add new vertex by index
 	}
 
