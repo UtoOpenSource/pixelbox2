@@ -18,6 +18,7 @@
  */
 
 #include "base.hpp"
+#include "client/_ui_list.hpp"
 #include "screen.hpp"
 #include "imgui.h"
 #include "imgui_md.h"
@@ -205,7 +206,11 @@ static struct HelpManager {
 
 static bool loaded = false;
 
-static Register r2([](int) {
+namespace ui {
+bool show_help_window = true;
+
+static class HelpManUI : public UIInstance {
+	void operator()(int) override {
 	if (!show_help_window) return;
 	man.collect_images(); // hehe
 
@@ -252,11 +257,17 @@ static Register r2([](int) {
 		}
 	}
 	ImGui::End();
-});
+}
 
-RegisterDestructor sus([](){
+void destroy() override {
 	man.unload_all_now();
-});
+}
+
+} v;
+
+UIInstance* help_window = &v;
+
+};
 
 };
 

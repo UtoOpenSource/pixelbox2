@@ -274,16 +274,24 @@ static class WorldViewScreen : public screen::Screen {
 	}
 } bg;
 
-static bool a = false;
-static screen::Register aaasus([](int) {
-	if (!a) {
-		screen::change(&bg);
-		a = true;
+namespace screen {
+namespace ui {
+
+static class memedit_dbg_win : public screen::UIInstance {
+	void create() override {
+		screen::change(&bg); // hehe
 	}
-	static MemoryEditor mem_edit, mem_edit2;
-	mem_edit.DrawWindow("Memory Editor : Verticies", bg.drawlist.verticies.Data, bg.drawlist.verticies.size_in_bytes());
-	mem_edit2.DrawWindow("Memory Editor : Indicies", bg.drawlist.indicies.Data, bg.drawlist.indicies.size_in_bytes());
-	bg.drawlist.clear();
-});
+	void operator()(int) override {
+		static MemoryEditor mem_edit, mem_edit2;
+		mem_edit.DrawWindow("Memory Editor : Verticies", bg.drawlist.verticies.Data, bg.drawlist.verticies.size_in_bytes());
+		mem_edit2.DrawWindow("Memory Editor : Indicies", bg.drawlist.indicies.Data, bg.drawlist.indicies.size_in_bytes());
+		bg.drawlist.clear();
+	}
+} v;
+
+UIInstance* world_ui = &v;
+
+};
+};
 
 };	// namespace pb

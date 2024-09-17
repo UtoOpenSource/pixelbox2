@@ -1,4 +1,5 @@
 #!/bin/bash
 mkdir -p build
 cd build
-cmake .. && make
+cmake .. && make && ./pixelbox
+cd ..

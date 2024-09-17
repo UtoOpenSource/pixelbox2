@@ -35,10 +35,6 @@
 namespace pb {
 
 namespace screen {
-	bool show_profiler = false;
-};
-
-namespace tools {
 
 using ZonePair = std::pair<const std::string*, prof::prof_stats>;
 
@@ -86,8 +82,12 @@ static std::string id_to_string(prof::ThreadID id) {
 	return strm.str();
 }
 
+namespace ui {
+
+bool show_profiler = false;
+
 /** Implementation */
-class Profiler {
+static class Profiler : public UIInstance {
 	bool pause;
 	bool force_short_stats = false;
 	bool need_refresh = false;
@@ -101,14 +101,7 @@ class Profiler {
 	// most heavier zones (short stats)
 	ZoneSet zones;
 	private:
-	void refresh_data(prof::ThreadData& prof);
-	void call_plotter();
-	public:
-	~Profiler() {}
-	void operator()();
-};
-
-void Profiler::refresh_data(prof::ThreadData& prof) {
+	void refresh_data(prof::ThreadData& prof) {
 	if (pause && !need_refresh) return;
 	need_refresh = false;
 
@@ -136,8 +129,7 @@ void Profiler::refresh_data(prof::ThreadData& prof) {
 	// sort
 	for (auto &p : data[history_pos]) {zones.emplace(p);}
 }
-
-void Profiler::call_plotter() {
+	void call_plotter() {
 	ImDrawList *draw_list = ImGui::GetWindowDrawList();
 	const ImVec2 pos = ImGui::GetCursorScreenPos();
 	const auto scr = ImGui::GetContentRegionAvail();
@@ -159,12 +151,16 @@ void Profiler::call_plotter() {
 		}
 	}
 }
+	public:
+	~Profiler() {}
+	
+void operator()(int) override {
+	if (!show_profiler) return;
 
-void Profiler::operator()() {
 	auto prof = prof::get_thread_data();
 
 	// Main body of the window
-	if (!ImGui::Begin("Pofiler", &screen::show_profiler)) {
+	if (!ImGui::Begin("Pofiler", &show_profiler)) {
 		// Early out if the window is collapsed, as an optimization.
 		ImGui::End();
 		return;
@@ -248,16 +244,15 @@ void Profiler::operator()() {
 	ImGui::End();
 	return;
 }
+} v;
 
-};	// namespace tools
 
-namespace screen {
+UIInstance* profiler = &v;
 
-	static pb::tools::Profiler prof;
-	static Register _a([](int){
-		if (!screen::show_profiler) return;
-		prof();
-	});
+
+
 };
+
+};	// namespace screeb
 
 };	// namespace pb

@@ -170,12 +170,5 @@ static class Background : public screen::Screen {
 	}
 } bg;
 
-static bool a = false;
-static screen::Register aaa([](int) {
-	if (!a) {
-		//screen::change(&bg);
-		a = true;
-	}
-});
 
 };	// namespace pb
